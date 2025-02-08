@@ -6,7 +6,7 @@
 #include "sdmmc_cmd.h"
 #include "driver/sdmmc_host.h"
 
-#ifdef CONFIG_BOX_LLM_WIFI
+#ifdef CONFIG_BOARD_TYPE_BOX_LLM_WIFI
 #define BSP_SD_CLK GPIO_NUM_47
 #define BSP_SD_CMD GPIO_NUM_48
 #define BSP_SD_D0 GPIO_NUM_21

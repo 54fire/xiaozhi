@@ -40,6 +40,8 @@ choice BOARD_TYPE
         bool "面包板_pp_1.0（WiFi）"
     config BOARD_TYPE_HUG_BEAT_WIFI
         bool "抱抱人"
+    config BOARD_TYPE_BOX_LLM_WIFI
+        bool "大模型盒子（WiFi）"     
     config BOARD_TYPE_BREAD_COMPACT_WIFI
         bool "面包板新版接线（WiFi）"
     config BOARD_TYPE_BREAD_COMPACT_WIFI_LCD
@@ -93,7 +95,7 @@ choice BOARD_TYPE
 endchoice
 
 choice DISPLAY_LCD_TYPE
-    depends on BOARD_TYPE_BREAD_COMPACT_WIFI_LCD
+    depends on BOARD_TYPE_BOX_LLM_WIFI
     prompt "LCD Type"
     default LCD_ST7789_240X320
     help
