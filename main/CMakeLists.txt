@@ -44,7 +44,7 @@ list(APPEND INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/boards/common)
 # 根据 BOARD_TYPE 配置添加对应的板级文件
 if(CONFIG_BOARD_TYPE_PPYUE_1_0_WIFI)
     set(BOARD_TYPE "bread-ppyuesheng-wifi")
-elseif(CONFIG_HUG_BEAT_WIFI)
+elseif(CONFIG_BOARD_TYPE_HUG_BEAT_WIFI)
     set(BOARD_TYPE "hug-beat-wifi")
 elseif(CONFIG_BOARD_TYPE_BOX_LLM_WIFI)
     set(BOARD_TYPE "box-llm-wifi")

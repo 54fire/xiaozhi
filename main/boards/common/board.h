@@ -1,3 +1,5 @@
+
+
 #ifndef BOARD_H
 #define BOARD_H
 
@@ -9,6 +11,7 @@
 
 #include "led/led.h"
 
+#define CONFIG_WEBSOCKET_URL "ws://8.137.102.252:8788/xiaozhi/v1/"
 void *create_board();
 class AudioCodec;
 class Display;
