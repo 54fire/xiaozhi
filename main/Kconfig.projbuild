@@ -17,7 +17,7 @@ choice CONNECTION_TYPE
         bool "Websocket"
 endchoice
 
-config WEBSOCKET_URL
+config WEBSOCKET_URL_BACK_UP
     depends on CONNECTION_TYPE_WEBSOCKET
     string "Websocket URL"
     default "wss://api.tenclass.net/xiaozhi/v1/"
@@ -38,8 +38,6 @@ choice BOARD_TYPE
         Board type. 开发板类型
     config BOARD_TYPE_PPYUE_1_0_WIFI
         bool "面包板_pp_1.0（WiFi）"
-    config BOARD_TYPE_BREAD_COMPACT_WIFI
-        bool "面包板新版接线（WiFi）"
     config BOARD_TYPE_HUG_BEAT_WIFI
         bool "抱抱人"
     config BOARD_TYPE_BREAD_COMPACT_WIFI

@@ -16,6 +16,7 @@
 #include "protocol.h"
 #include "ota.h"
 #include "background_task.h"
+#include "sensor.h"
 
 #if CONFIG_IDF_TARGET_ESP32S3
 #include "wake_word_detect.h"
@@ -25,8 +26,10 @@
 #define SCHEDULE_EVENT (1 << 0)
 #define AUDIO_INPUT_READY_EVENT (1 << 1)
 #define AUDIO_OUTPUT_READY_EVENT (1 << 2)
+#define SENSOR_EVENT_TASK_STACK_SIZE 4096
 
-enum DeviceState {
+enum DeviceState
+{
     kDeviceStateUnknown,
     kDeviceStateStarting,
     kDeviceStateWifiConfiguring,
@@ -35,27 +38,31 @@ enum DeviceState {
     kDeviceStateListening,
     kDeviceStateSpeaking,
     kDeviceStateUpgrading,
-    kDeviceStateFatalError
+    kDeviceStateFatalError,
+    kDeviceStateSensor
+
 };
 
 #define OPUS_FRAME_DURATION_MS 60
 
-class Application {
+class Application
+{
 public:
-    static Application& GetInstance() {
+    static Application &GetInstance()
+    {
         static Application instance;
         return instance;
     }
     // 删除拷贝构造函数和赋值运算符
-    Application(const Application&) = delete;
-    Application& operator=(const Application&) = delete;
+    Application(const Application &) = delete;
+    Application &operator=(const Application &) = delete;
 
     void Start();
     DeviceState GetDeviceState() const { return device_state_; }
     bool IsVoiceDetected() const { return voice_detected_; }
     void Schedule(std::function<void()> callback);
     void SetDeviceState(DeviceState state);
-    void Alert(const std::string& title, const std::string& message);
+    void Alert(const std::string &title, const std::string &message);
     void AbortSpeaking(AbortReason reason);
     void ToggleChatState();
     void StartListening();
@@ -80,9 +87,15 @@ private:
     bool aborted_ = false;
     bool voice_detected_ = false;
     std::string last_iot_states_;
+    // sensor
+    std::string sensor_msg_;
+    int sensor_value_;
+
+    StaticTask_t xSensorEventTaskBuffer_;
+    StackType_t *xSensorEventTaskStack = nullptr;
 
     // Audio encode / decode
-    BackgroundTask* background_task_ = nullptr;
+    BackgroundTask *background_task_ = nullptr;
     std::chrono::steady_clock::time_point last_output_time_;
     std::list<std::vector<uint8_t>> audio_decode_queue_;
 
@@ -101,7 +114,9 @@ private:
     void SetDecodeSampleRate(int sample_rate);
     void CheckNewVersion();
 
-    void PlayLocalFile(const char* data, size_t size);
+    void PlayLocalFile(const char *data, size_t size);
+
+    void SensorEventTask();
 };
 
 #endif // _APPLICATION_H_
