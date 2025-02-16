@@ -280,12 +280,13 @@ void Application::Start()
     codec->Start();
 
     xSensorEventTaskStack = (StackType_t *)malloc(SENSOR_EVENT_TASK_STACK_SIZE);
+    if (ENABLE_SENSOR){
     // 创建静态任务
     xTaskCreateStatic([](void *arg)
                       {
          Application* app = (Application*)arg;
          app->SensorEventTask(); }, "sensor_event", SENSOR_EVENT_TASK_STACK_SIZE, this, 1, xSensorEventTaskStack, &xSensorEventTaskBuffer_);
-
+                      }
     /* Start the main loop */
     xTaskCreate([](void *arg)
                 {
