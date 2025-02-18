@@ -8,8 +8,8 @@
 // 定义LED PWM相关宏
 #define LED_PWM_TIMER LEDC_TIMER_3
 #define LED_PWM_CHANNEL LEDC_CHANNEL_3
-#define LED_IO CONFIG_SENSOR_LED // 根据实际情况修改LED IO端口
-
+#define LED_IO CONFIG_SENSOR_LED   // 根据实际情况修改LED IO端口
+#define LED_IO_2 CONFIG_SENSOR_LED // 根据实际情况修改LED IO端口
 class SensorLED
 {
 public:

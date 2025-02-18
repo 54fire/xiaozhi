@@ -47,7 +47,10 @@ typedef struct
 #define RIGHT_HAND_IO CONFIG_RIGHT_HAND // RIGHT_HAND IO端口
 
 // 定义ADC相关宏
-#define HUG1_CHANNEL CONFIG_HUG_CHANNEL // 根据实际情况修改HUG1通道
+#define HUG1_CHANNEL CONFIG_HUG1_CHANNEL
+#define HUG2_CHANNEL CONFIG_HUG2_CHANNEL
+#define HEAD1_CHANNEL CONFIG_HEAD1_CHANNEL
+#define HEAD2_CHANNEL CONFIG_HEAD2_CHANNEL
 #define TOUCH_THRESHOLD (1000)
 #define MAX_VALUE 4095
 #define THRED_HOLD 2500
@@ -61,8 +64,8 @@ public:
     static bool Consume_Queue(SensorMessage *msg); // 用于消费
 
 private:
-    static adc_oneshot_unit_handle_t adc1_handle;
-    static adc_cali_handle_t adc1_cali_chan0_handle;
+    static adc_oneshot_unit_handle_t adc1_handle; // 存储 ADC 单元句柄
+    static adc_cali_handle_t adc1_cali_handles[10];
     static QueueHandle_t sensorQueue;
     static const char *TAG;
     static StaticTask_t xPressureTaskBuffer;
@@ -71,15 +74,17 @@ private:
     static StackType_t xVibrationTaskStack[VIBRATION_TASK_STACK_SIZE];
     static int64_t last_trigger_time;
     static TouchPadManager touchManager;
-
     static int normalize(int input_value, int min_output = 1, int max_output = 10);
 
+    static int read_adc(int channel_index);
+    static int read_adc_channel(adc_channel_t channel);
     static void handle_vibration_event();
     static void send_event_msg(SensorEventType type, int value);
     static void PressureSensor_Task(void *pvParameters);
     static void VibrationSensor_Task(void *pvParameters);
-    static int read_adc();
+    static void init_vibration_sensor();
     static void init_adc();
+    static void init_adc_channel(adc_channel_t channel);
     static void init_touch_pad();
     static void touchCallback(uint8_t pad_num);
     static bool example_adc_calibration_init(adc_unit_t unit, adc_channel_t channel, adc_atten_t atten, adc_cali_handle_t *out_handle);
