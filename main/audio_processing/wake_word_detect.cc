@@ -102,23 +102,21 @@ void WakeWordDetect::Initialize(int channels, bool reference)
     };
 
     afe_detection_data_ = esp_afe_sr_v1.create_from_config(&afe_config);
+    if (USE_COMMAND_WAKE)
+    {
+        // Initialize MultiNet
+        multinet_ = esp_mn_handle_from_name(const_cast<char *>(multinet_model_name_.c_str()));
+        model_data_ = multinet_->create(const_cast<char *>(multinet_model_name_.c_str()), 16000);
 
-    // Initialize MultiNet
-    multinet_ = esp_mn_handle_from_name(const_cast<char *>(multinet_model_name_.c_str()));
-    model_data_ = multinet_->create(const_cast<char *>(multinet_model_name_.c_str()), 16000);
+        // Add custom commands
+        esp_mn_commands_clear();
+        esp_mn_commands_add(3, "tian xiao mei");
+        esp_mn_commands_add(4, "tian xiao hu");
+        esp_mn_commands_add(5, "xiao yu xiao yu");
+        esp_mn_commands_update();
 
-    // Add custom commands
-    esp_mn_commands_clear();
-    esp_mn_commands_add(1, "si wei qi");
-    esp_mn_commands_add(2, "zhou liao ji");
-    esp_mn_commands_add(3, "tian xiao mei");
-    esp_mn_commands_add(4, "tian xiao hu");
-    esp_mn_commands_add(5, "xiao yu xiao yu");
-    esp_mn_commands_add(6, "bao wen deng");
-    esp_mn_commands_add(6, "bao wen ban");
-    esp_mn_commands_update();
-
-    multinet_->print_active_speech_commands(model_data_);
+        multinet_->print_active_speech_commands(model_data_);
+    }
 
     xTaskCreate([](void *arg)
                 {
@@ -203,29 +201,41 @@ void WakeWordDetect::AudioDetectionTask()
                 vad_state_change_callback_(false);
             }
         }
-
-        if (res->wakeup_state == WAKENET_DETECTED)
+        if (!USE_COMMAND_WAKE)
         {
-            StopDetection();
-            last_detected_wake_word_ = wake_words_[res->wake_word_index - 1];
 
-            if (wake_word_detected_callback_)
+            if (res->wakeup_state == WAKENET_DETECTED)
             {
-                wake_word_detected_callback_(last_detected_wake_word_);
+                StopDetection();
+                last_detected_wake_word_ = wake_words_[res->wake_word_index - 1];
+
+                if (wake_word_detected_callback_)
+                {
+                    wake_word_detected_callback_(last_detected_wake_word_);
+                }
             }
         }
-        // Command detection
-        esp_mn_state_t mn_state = multinet_->detect(model_data_, res->data);
-        if (mn_state == ESP_MN_STATE_DETECTED)
+        else
         {
-            esp_mn_results_t *mn_result = multinet_->get_results(model_data_);
-            for (int i = 0; i < mn_result->num; i++)
+            // Command detection
+            esp_mn_state_t mn_state = multinet_->detect(model_data_, res->data);
+            if (mn_state == ESP_MN_STATE_DETECTED)
             {
-                ESP_LOGI(TAG, "Detected command: %s, Probability: %.2f",
-                         mn_result->string, mn_result->prob[i]);
-                if (command_detected_callback_)
+                esp_mn_results_t *mn_result = multinet_->get_results(model_data_);
+                for (int i = 0; i < mn_result->num; i++)
                 {
-                    command_detected_callback_(mn_result->string);
+                    ESP_LOGI(TAG, "Detected command: %s, Probability: %.2f",
+                             mn_result->string, mn_result->prob[i]);
+                    if (command_detected_callback_)
+                    {
+                        command_detected_callback_(mn_result->string);
+                    }
+                    StopDetection();
+                    last_detected_wake_word_ = WAKE_NAME;
+                    if (wake_word_detected_callback_)
+                    {
+                        wake_word_detected_callback_(last_detected_wake_word_);
+                    }
                 }
             }
         }

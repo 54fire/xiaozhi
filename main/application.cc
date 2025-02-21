@@ -623,8 +623,8 @@ void Application::InputAudio()
 void Application::AbortSpeaking(AbortReason reason)
 {
     ESP_LOGI(TAG, "Abort speaking");
-    aborted_ = true;
-    protocol_->SendAbortSpeaking(reason);
+    // aborted_ = true;
+    // protocol_->SendAbortSpeaking(reason);
 }
 
 void Application::SetDeviceState(DeviceState state)
@@ -760,12 +760,13 @@ void Application::SensorEventTask()
                 keep_listening_ = true;
                 SetDeviceState(kDeviceStateListening);
             }
-            else if (device_state_ == kDeviceStateSpeaking)
+            else if (device_state_ != kDeviceStateSpeaking)
             {
                 // AbortSpeaking(kAbortReasonNone);
                 // SetDeviceState(kDeviceStateSensor);
+                protocol_->SendSensorDetected(sensor_msg_, msg.value, device_state_ == kDeviceStateIdle);
             }
-            protocol_->SendSensorDetected(sensor_msg_, msg.value, device_state_ == kDeviceStateIdle);
+            
             vTaskDelay(pdMS_TO_TICKS(2000));
         }
     }

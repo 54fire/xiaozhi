@@ -17,6 +17,9 @@
 #include "command_recognition.h"
 #include "esp_mn_iface.h"
 
+#define USE_COMMAND_WAKE true
+#define WAKE_NAME "你好，田小妹"
+
 class WakeWordDetect
 {
 public:

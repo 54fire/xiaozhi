@@ -1,6 +1,6 @@
 
 
-#define ENABLE_SENSOR false
+#define ENABLE_SENSOR true
 #define ENABLE_SENSOR_TOUCH false
 #ifdef CONFIG_BOARD_TYPE_BOX_LLM_WIFI
 
