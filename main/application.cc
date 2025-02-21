@@ -762,8 +762,8 @@ void Application::SensorEventTask()
             }
             else if (device_state_ == kDeviceStateSpeaking)
             {
-                AbortSpeaking(kAbortReasonNone);
-                SetDeviceState(kDeviceStateSensor);
+                // AbortSpeaking(kAbortReasonNone);
+                // SetDeviceState(kDeviceStateSensor);
             }
             protocol_->SendSensorDetected(sensor_msg_, msg.value, device_state_ == kDeviceStateIdle);
             vTaskDelay(pdMS_TO_TICKS(2000));
