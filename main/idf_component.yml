@@ -1,5 +1,6 @@
 ## IDF Component Manager Manifest File
 dependencies:
+  espressif/esp-sr: "^2.0.0"
   waveshare/esp_lcd_sh8601:
     version: "1.0.2"
     public: true

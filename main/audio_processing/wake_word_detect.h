@@ -15,6 +15,7 @@
 #include <mutex>
 #include <condition_variable>
 #include "command_recognition.h"
+#include "esp_mn_iface.h"
 
 class WakeWordDetect
 {
@@ -34,13 +35,15 @@ public:
     const std::string &GetLastDetectedWakeWord() const { return last_detected_wake_word_; }
 
 private:
-        esp_afe_sr_data_t *afe_detection_data_ = nullptr;
+    esp_afe_sr_data_t *afe_detection_data_ = nullptr;
     char *wakenet_model_ = NULL;
+    std::string multinet_model_name_;
     std::vector<std::string> wake_words_;
     std::vector<int16_t> input_buffer_;
     EventGroupHandle_t event_group_;
     std::function<void(const std::string &wake_word)> wake_word_detected_callback_;
     std::function<void(bool speaking)> vad_state_change_callback_;
+    std::function<void(const char *command)> command_detected_callback_;
     bool is_speaking_ = false;
     int channels_;
     bool reference_;
@@ -51,9 +54,11 @@ private:
     StackType_t *wake_word_encode_task_stack_ = nullptr;
     std::list<std::vector<int16_t>> wake_word_pcm_;
     std::list<std::vector<uint8_t>> wake_word_opus_;
-    std::unique_ptr<CommandRecognition> command_recognition_;
     std::mutex wake_word_mutex_;
     std::condition_variable wake_word_cv_;
+
+    esp_mn_iface_t *multinet_;
+    model_iface_data_t *model_data_;
 
     void StoreWakeWordData(uint16_t *data, size_t size);
     void AudioDetectionTask();
