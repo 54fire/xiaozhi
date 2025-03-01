@@ -18,7 +18,8 @@
 #include "esp_mn_iface.h"
 
 #define USE_COMMAND_WAKE true
-#define WAKE_NAME "你好，田小妹"
+#define WAKE_COMMAND "xiao yu xiao yu"
+#define WAKE_NAME "你好，小语"
 
 class WakeWordDetect
 {

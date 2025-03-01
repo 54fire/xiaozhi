@@ -40,6 +40,8 @@ choice BOARD_TYPE
         bool "面包板_pp_1.0（WiFi）"
     config BOARD_TYPE_HUG_BEAT_WIFI
         bool "抱抱人"
+    config BOARD_TYPE_HUG_BEAT_4G
+        bool "抱抱人-4G"
     config BOARD_TYPE_BOX_LLM_WIFI
         bool "大模型盒子（WiFi）"     
     config BOARD_TYPE_BREAD_COMPACT_WIFI

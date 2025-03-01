@@ -230,11 +230,14 @@ void WakeWordDetect::AudioDetectionTask()
                     {
                         command_detected_callback_(mn_result->string);
                     }
-                    StopDetection();
-                    last_detected_wake_word_ = WAKE_NAME;
-                    if (wake_word_detected_callback_)
+                    if (strcmp(mn_result->string, WAKE_COMMAND) == 0 )
                     {
-                        wake_word_detected_callback_(last_detected_wake_word_);
+                        StopDetection();
+                        last_detected_wake_word_ = WAKE_NAME;
+                        if (wake_word_detected_callback_)
+                        {
+                            wake_word_detected_callback_(last_detected_wake_word_);
+                        }
                     }
                 }
             }
