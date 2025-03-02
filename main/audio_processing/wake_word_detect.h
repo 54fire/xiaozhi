@@ -17,8 +17,14 @@
 #include "command_recognition.h"
 #include "esp_mn_iface.h"
 
+#define TIAN_XIAO_MEI "tian xiao mei"
+#define TIAN_XIAO_MEI_CODE 1
+#define TIAN_XIAO_HU "tian xiao hu"
+#define TIAN_XIAO_HU_CODE 2
+#define XIAO_YU_XIAO_YU "xiao yu xiao yu"
+#define XIAO_YU_XIAO_YU_CODE 3
 #define USE_COMMAND_WAKE true
-#define WAKE_COMMAND "xiao yu xiao yu"
+#define WAKE_COMMAND XIAO_YU_XIAO_YU
 #define WAKE_NAME "你好，小语"
 
 class WakeWordDetect
@@ -63,7 +69,7 @@ private:
 
     esp_mn_iface_t *multinet_;
     model_iface_data_t *model_data_;
-
+    void trim(char* str);
     void StoreWakeWordData(uint16_t *data, size_t size);
     void AudioDetectionTask();
 };

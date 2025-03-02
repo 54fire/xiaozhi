@@ -5,8 +5,11 @@
 
 #include <esp_log.h>
 #include <model_path.h>
+#include <string.h> 
 #include <arpa/inet.h>
 #include <sstream>
+#include <stdio.h>
+#include <ctype.h>  // 用于isspace函数
 
 #define DETECTION_RUNNING_EVENT 1
 
@@ -110,9 +113,9 @@ void WakeWordDetect::Initialize(int channels, bool reference)
 
         // Add custom commands
         esp_mn_commands_clear();
-        esp_mn_commands_add(3, "tian xiao mei");
-        esp_mn_commands_add(4, "tian xiao hu");
-        esp_mn_commands_add(5, "xiao yu xiao yu");
+        esp_mn_commands_add(TIAN_XIAO_HU_CODE, TIAN_XIAO_HU);
+        esp_mn_commands_add(TIAN_XIAO_MEI_CODE, TIAN_XIAO_MEI);
+        esp_mn_commands_add(XIAO_YU_XIAO_YU_CODE, XIAO_YU_XIAO_YU);
         esp_mn_commands_update();
 
         multinet_->print_active_speech_commands(model_data_);
@@ -159,6 +162,32 @@ void WakeWordDetect::Feed(const std::vector<int16_t> &data)
     {
         esp_afe_sr_v1.feed(afe_detection_data_, input_buffer_.data());
         input_buffer_.erase(input_buffer_.begin(), input_buffer_.begin() + feed_size);
+    }
+}
+
+
+
+// 函数：去除字符串前后的空格
+void WakeWordDetect::trim(char* str) {
+    char* start = str;  // 指向字符串的起始位置
+    char* end = str + strlen(str) - 1;  // 指向字符串的末尾位置
+
+    // 去除前面的空格
+    while (isspace(*start)) {
+        start++;
+    }
+
+    // 去除后面的空格
+    while (end > start && isspace(*end)) {
+        end--;
+    }
+
+    // 在字符串末尾添加空字符，截断多余的空格
+    *(end + 1) = '\0';
+
+    // 如果去除空格后字符串变短了，需要将剩余部分前移
+    if (start != str) {
+        memmove(str, start, strlen(start) + 1);
     }
 }
 
@@ -224,13 +253,14 @@ void WakeWordDetect::AudioDetectionTask()
                 esp_mn_results_t *mn_result = multinet_->get_results(model_data_);
                 for (int i = 0; i < mn_result->num; i++)
                 {
-                    ESP_LOGI(TAG, "Detected command: %s, Probability: %.2f",
-                             mn_result->string, mn_result->prob[i]);
+                    ESP_LOGI(TAG, "Detected command: '%s'\n, Probability: %.2f,num:%d ",
+                             mn_result->string, mn_result->prob[i],mn_result->num);
                     if (command_detected_callback_)
                     {
                         command_detected_callback_(mn_result->string);
                     }
-                    if (strcmp(mn_result->string, WAKE_COMMAND) == 0 )
+                    trim(mn_result->string);
+                    if (strcmp(mn_result->string, WAKE_COMMAND) == 0)
                     {
                         StopDetection();
                         last_detected_wake_word_ = WAKE_NAME;

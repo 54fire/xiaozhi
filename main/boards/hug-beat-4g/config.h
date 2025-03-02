@@ -33,8 +33,8 @@
 
 
 
-#define ML307_RX_PIN GPIO_NUM_15
-#define ML307_TX_PIN GPIO_NUM_16
+#define ML307_RX_PIN GPIO_NUM_16
+#define ML307_TX_PIN GPIO_NUM_15
 
 
 #endif // _BOARD_CONFIG_H_

@@ -24,6 +24,10 @@
 #define BSP_SD_CLK GPIO_NUM_47
 #define BSP_SD_CMD GPIO_NUM_14
 #define BSP_SD_D0 GPIO_NUM_21
+#else
+#define BSP_SD_CLK GPIO_NUM_9
+#define BSP_SD_CMD GPIO_NUM_8
+#define BSP_SD_D0 GPIO_NUM_10
 #endif
 
 class SDCard
