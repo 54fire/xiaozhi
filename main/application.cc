@@ -393,11 +393,11 @@ void Application::Start()
         } });
 
     // Check for new firmware version or get the MQTT broker address
-    xTaskCreate([](void *arg)
-                {
-        Application* app = (Application*)arg;
-        app->CheckNewVersion();
-        vTaskDelete(NULL); }, "check_new_version", 4096 * 2, this, 1, nullptr);
+    // xTaskCreate([](void *arg)
+    //             {
+    //     Application* app = (Application*)arg;
+    //     app->CheckNewVersion();
+    //     vTaskDelete(NULL); }, "check_new_version", 4096 * 2, this, 1, nullptr);
 
 #if CONFIG_IDF_TARGET_ESP32S3
     audio_processor_.Initialize(codec->input_channels(), codec->input_reference());
@@ -756,18 +756,21 @@ void Application::SensorEventTask()
                     SetDeviceState(kDeviceStateIdle);
                     continue;
                 }
-
-                keep_listening_ = true;
-                SetDeviceState(kDeviceStateListening);
+             protocol_->SendSensorDetected(sensor_msg_, msg.value, true);
+             SetDeviceState(kDeviceStateSpeaking);
+              vTaskDelay(pdMS_TO_TICKS(2000));
+                // keep_listening_ = true;
+               
             }
             else if (device_state_ != kDeviceStateSpeaking)
             {
                 // AbortSpeaking(kAbortReasonNone);
                 // SetDeviceState(kDeviceStateSensor);
                 protocol_->SendSensorDetected(sensor_msg_, msg.value, device_state_ == kDeviceStateIdle);
+                 vTaskDelay(pdMS_TO_TICKS(2000));
             }
             
-            vTaskDelay(pdMS_TO_TICKS(2000));
+            vTaskDelay(pdMS_TO_TICKS(1000));
         }
     }
 }

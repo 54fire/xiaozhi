@@ -27,7 +27,7 @@ set(SOURCES "audio_codecs/audio_codec.cc"
             "sensors/sensor_led.cc"
             "sensors/touch.cc"
             "sdcard/sd_card.cc"
-            
+        
             )
 
 set(INCLUDE_DIRS "." "display" "audio_codecs" "protocols" "audio_processing" "sdcard" "sensors")
