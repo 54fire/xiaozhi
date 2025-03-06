@@ -767,6 +767,7 @@ void Application::SensorEventTask()
                 // AbortSpeaking(kAbortReasonNone);
                 // SetDeviceState(kDeviceStateSensor);
                 protocol_->SendSensorDetected(sensor_msg_, msg.value, device_state_ == kDeviceStateIdle);
+                SetDeviceState(kDeviceStateSpeaking);
                  vTaskDelay(pdMS_TO_TICKS(2000));
             }
             
