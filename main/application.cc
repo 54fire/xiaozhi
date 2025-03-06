@@ -16,6 +16,7 @@
 #include <arpa/inet.h>
 
 #define TAG "Application"
+#define CONFIG_OTA_VERSION_URL_ZLY "https://ota.zxzyn.com/big/"
 
 extern const char p3_err_reg_start[] asm("_binary_err_reg_p3_start");
 extern const char p3_err_reg_end[] asm("_binary_err_reg_p3_end");
@@ -43,7 +44,7 @@ Application::Application()
     event_group_ = xEventGroupCreate();
     background_task_ = new BackgroundTask(4096 * 8);
 
-    ota_.SetCheckVersionUrl(CONFIG_OTA_VERSION_URL);
+    ota_.SetCheckVersionUrl(CONFIG_OTA_VERSION_URL_ZLY);
     ota_.SetHeader("Device-Id", SystemInfo::GetMacAddress().c_str());
 }
 
@@ -393,11 +394,11 @@ void Application::Start()
         } });
 
     // Check for new firmware version or get the MQTT broker address
-    // xTaskCreate([](void *arg)
-    //             {
-    //     Application* app = (Application*)arg;
-    //     app->CheckNewVersion();
-    //     vTaskDelete(NULL); }, "check_new_version", 4096 * 2, this, 1, nullptr);
+    xTaskCreate([](void *arg)
+                {
+        Application* app = (Application*)arg;
+        app->CheckNewVersion();
+        vTaskDelete(NULL); }, "check_new_version", 4096 * 2, this, 1, nullptr);
 
 #if CONFIG_IDF_TARGET_ESP32S3
     audio_processor_.Initialize(codec->input_channels(), codec->input_reference());
