@@ -146,12 +146,19 @@ if(CONFIG_CONNECTION_TYPE_MQTT_UDP)
 elseif(CONFIG_CONNECTION_TYPE_WEBSOCKET)
     list(APPEND SOURCES "protocols/websocket_protocol.cc")
 endif()
+if(CONFIG_IDF_TARGET_ESP32S3)
+    list(APPEND SOURCES 
+    "sensors/sensor.cc"
+    "sensors/sensor_led.cc"
+    "sensors/touch.cc"
+    "sdcard/sd_card.cc")
+endif()
 
 if(CONFIG_USE_AUDIO_PROCESSOR)
     list(APPEND SOURCES "audio_processing/audio_processor.cc")
 endif()
 if(CONFIG_USE_WAKE_WORD_DETECT)
-    list(APPEND SOURCES "audio_processing/wake_word_detect.cc")
+    list(APPEND SOURCES "audio_processing/wake_word_detect.cc ")
 endif()
 
 # 根据Kconfig选择语言目录
