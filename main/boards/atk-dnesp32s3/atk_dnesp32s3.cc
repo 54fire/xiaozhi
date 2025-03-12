@@ -132,7 +132,7 @@ private:
         esp_lcd_panel_invert_color(panel, true);
         esp_lcd_panel_swap_xy(panel, DISPLAY_SWAP_XY); 
         esp_lcd_panel_mirror(panel, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y);
-        display_ = new LcdDisplay(panel_io, panel, DISPLAY_BACKLIGHT_PIN, DISPLAY_BACKLIGHT_OUTPUT_INVERT,
+        display_ = new SpiLcdDisplay(panel_io, panel,
                                     DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, DISPLAY_SWAP_XY,
                                     {
                                         .text_font = &font_puhui_20_4,
@@ -162,13 +162,20 @@ public:
     }
 
     virtual AudioCodec* GetAudioCodec() override {
-        static Es8388AudioCodec* audio_codec = nullptr;
-        if (audio_codec == nullptr) {
-            audio_codec = new Es8388AudioCodec(i2c_bus_, I2C_NUM_0, AUDIO_INPUT_SAMPLE_RATE, AUDIO_OUTPUT_SAMPLE_RATE,
-                AUDIO_I2S_GPIO_MCLK, AUDIO_I2S_GPIO_BCLK, AUDIO_I2S_GPIO_WS, AUDIO_I2S_GPIO_DOUT, AUDIO_I2S_GPIO_DIN,
-                GPIO_NUM_NC, AUDIO_CODEC_ES8388_ADDR);
-        }
-        return audio_codec;
+        static Es8388AudioCodec audio_codec(
+            i2c_bus_, 
+            I2C_NUM_0, 
+            AUDIO_INPUT_SAMPLE_RATE, 
+            AUDIO_OUTPUT_SAMPLE_RATE,
+            AUDIO_I2S_GPIO_MCLK, 
+            AUDIO_I2S_GPIO_BCLK, 
+            AUDIO_I2S_GPIO_WS, 
+            AUDIO_I2S_GPIO_DOUT, 
+            AUDIO_I2S_GPIO_DIN,
+            GPIO_NUM_NC, 
+            AUDIO_CODEC_ES8388_ADDR
+        );
+        return &audio_codec;
     }
 
     virtual Display* GetDisplay() override {
