@@ -23,14 +23,9 @@ set(SOURCES "audio_codecs/audio_codec.cc"
             "settings.cc"
             "background_task.cc"
             "main.cc"
-            "sensors/sensor.cc"
-            "sensors/sensor_led.cc"
-            "sensors/touch.cc"
-            "sdcard/sd_card.cc"
-        
             )
 
-set(INCLUDE_DIRS "." "display" "audio_codecs" "protocols" "audio_processing" "sdcard" "sensors")
+set(INCLUDE_DIRS "." "display" "audio_codecs" "protocols" "audio_processing")
 
 # 添加 IOT 相关文件
 file(GLOB IOT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/iot/things/*.cc)
@@ -105,7 +100,12 @@ file(GLOB BOARD_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/boards/${BOARD_TYPE}/*.cc)
 list(APPEND SOURCES ${BOARD_SOURCES})
 
 if(CONFIG_IDF_TARGET_ESP32S3)
-    list(APPEND SOURCES "audio_processing/audio_processor.cc" "audio_processing/wake_word_detect.cc")
+    list(APPEND SOURCES "audio_processing/audio_processor.cc"
+    "audio_processing/wake_word_detect.cc" 
+    "sensors/sensor.cc"
+    "sensors/sensor_led.cc"
+    "sensors/touch.cc"
+    "sdcard/sd_card.cc")
 endif()
 
 # 如果目标芯片是 ESP32，则排除特定文件

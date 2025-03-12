@@ -16,9 +16,9 @@
 #include "protocol.h"
 #include "ota.h"
 #include "background_task.h"
-#include "sensor.h"
 
 #if CONFIG_IDF_TARGET_ESP32S3
+#include "sensor.h"
 #include "wake_word_detect.h"
 #include "audio_processor.h"
 #endif

@@ -238,7 +238,9 @@ void Application::StopListening()
 
 void Application::Start()
 {
+    #if CONFIG_IDF_TARGET_ESP32S3
     Sensor::Sensor_Init();
+    #endif
     auto &board = Board::GetInstance();
     SetDeviceState(kDeviceStateStarting);
 
@@ -281,6 +283,7 @@ void Application::Start()
     codec->Start();
 
     xSensorEventTaskStack = (StackType_t *)malloc(SENSOR_EVENT_TASK_STACK_SIZE);
+    #if CONFIG_IDF_TARGET_ESP32S3
     if (ENABLE_SENSOR){
     // 创建静态任务
     xTaskCreateStatic([](void *arg)
@@ -288,6 +291,7 @@ void Application::Start()
          Application* app = (Application*)arg;
          app->SensorEventTask(); }, "sensor_event", SENSOR_EVENT_TASK_STACK_SIZE, this, 1, xSensorEventTaskStack, &xSensorEventTaskBuffer_);
                       }
+    #endif
     /* Start the main loop */
     xTaskCreate([](void *arg)
                 {
@@ -711,6 +715,7 @@ void Application::UpdateIotStates()
 
 void Application::SensorEventTask()
 {
+    #if CONFIG_IDF_TARGET_ESP32S3
     while (true)
     {
 
@@ -775,4 +780,5 @@ void Application::SensorEventTask()
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
     }
+    #endif
 }
