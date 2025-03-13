@@ -112,6 +112,10 @@ bool WebsocketProtocol::OpenAudioChannel() {
     std::string message = "{";
     message += "\"type\":\"hello\",";
     message += "\"version\": 1,";
+    #ifndef CONFIG_USE_WAKENET
+    message += "\"welcome\":\"true\",";
+    message += "\"role\":\"xiaohongmei\",";
+    #endif
     message += "\"transport\":\"websocket\",";
     message += "\"audio_params\":{";
     message += "\"format\":\"opus\", \"sample_rate\":16000, \"channels\":1, \"frame_duration\":" + std::to_string(OPUS_FRAME_DURATION_MS);
