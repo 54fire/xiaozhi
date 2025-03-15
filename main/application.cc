@@ -17,6 +17,7 @@
 #include <arpa/inet.h>
 #include <esp_app_desc.h>
 
+
 #define TAG "Application"
 #define CONFIG_OTA_VERSION_URL_ZLY "https://ota.zxzyn.com/big/"
 
@@ -37,7 +38,6 @@ static const char* const STATE_STRINGS[] = {
 Application::Application() {
     event_group_ = xEventGroupCreate();
     background_task_ = new BackgroundTask(4096 * 8);
-
     esp_timer_create_args_t clock_timer_args = {
         .callback = [](void* arg) {
             Application* app = (Application*)arg;
@@ -245,6 +245,8 @@ void Application::ToggleChatState() {
 
     if (!protocol_) {
         ESP_LOGE(TAG, "Protocol not initialized");
+        OfflineAudioPlayer& player = OfflineAudioPlayer::getInstance();
+        PlaySound(player.getNextSound());
         return;
     }
 

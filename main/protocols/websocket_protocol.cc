@@ -112,7 +112,7 @@ bool WebsocketProtocol::OpenAudioChannel() {
     std::string message = "{";
     message += "\"type\":\"hello\",";
     message += "\"version\": 1,";
-    #ifndef CONFIG_USE_WAKENET
+    #ifdef CONFIG_BOARD_TYPE_XMINI_C3
     message += "\"welcome\":\"true\",";
     message += "\"role\":\"xiaohongmei\",";
     #endif
