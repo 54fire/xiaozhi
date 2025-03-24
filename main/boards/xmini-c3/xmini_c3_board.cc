@@ -29,6 +29,8 @@ private:
     esp_lcd_panel_handle_t panel_ = nullptr;
     Display* display_ = nullptr;
     Button boot_button_;
+    Button next_button_;
+    Button prev_button_;
     bool press_to_talk_enabled_ = false;
     PowerSaveTimer* power_save_timer_;
 
@@ -140,6 +142,32 @@ private:
                 Application::GetInstance().StopListening();
             }
         });
+
+        next_button_.OnClick([this]() {
+            ESP_LOGI(TAG, "next button clicked");
+        });
+        next_button_.OnLongPress([this]() {
+             auto codec = GetAudioCodec();
+            auto volume = codec->output_volume() + 10;
+            if (volume > 100) {
+                volume = 100;
+            }
+            codec->SetOutputVolume(volume);
+            GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume));
+        });
+
+        prev_button_.OnClick([this]() {
+            ESP_LOGI(TAG, "prev button clicked");
+        });
+        prev_button_.OnLongPress([this]() {
+            auto codec = GetAudioCodec();
+            auto volume = codec->output_volume() - 10;
+            if (volume < 10) {
+                volume = 10;
+            }
+            codec->SetOutputVolume(volume);
+            GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume));
+        });
     }
 
     // 物联网初始化，添加对 AI 可见设备
@@ -153,7 +181,11 @@ private:
     }
 
 public:
-    XminiC3Board() : boot_button_(BOOT_BUTTON_GPIO) {  
+    XminiC3Board() : boot_button_(BOOT_BUTTON_GPIO),
+                     next_button_(NEXT_BUTTON_GPIO),
+                     prev_button_(PREV_BUTTON_GPIO)
+    
+     {  
         // 把 ESP32C3 的 VDD SPI 引脚作为普通 GPIO 口使用
         esp_efuse_write_field_bit(ESP_EFUSE_VDD_SPI_AS_GPIO);
 
