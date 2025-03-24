@@ -16,7 +16,7 @@
 static const char *TAG = "WakeWordDetect";
 
 WakeWordDetect::WakeWordDetect()
-    : afe_detection_data_(nullptr),
+    : afe_data_(nullptr),
       wake_word_pcm_(),
       wake_word_opus_()
 {
@@ -26,9 +26,9 @@ WakeWordDetect::WakeWordDetect()
 
 WakeWordDetect::~WakeWordDetect()
 {
-    if (afe_detection_data_ != nullptr)
+    if (afe_data_ != nullptr)
     {
-        esp_afe_sr_v1.destroy(afe_detection_data_);
+        afe_iface_->destroy(afe_data_);
     }
 
     if (wake_word_encode_task_stack_ != nullptr)
@@ -73,59 +73,29 @@ void WakeWordDetect::Initialize(int channels, bool reference)
         return;
     }
 
-    afe_config_t afe_config = {
-        .aec_init = reference_,
-        .se_init = true,
-        .vad_init = true,
-        .wakenet_init = true,
-        .voice_communication_init = false,
-        .voice_communication_agc_init = false,
-        .voice_communication_agc_gain = 10,
-        .vad_mode = VAD_MODE_3,
-        .wakenet_model_name = wakenet_model_,
-        .wakenet_model_name_2 = NULL,
-        .wakenet_mode = DET_MODE_90,
-        .afe_mode = SR_MODE_HIGH_PERF,
-        .afe_perferred_core = 1,
-        .afe_perferred_priority = 1,
-        .afe_ringbuf_size = 50,
-        .memory_alloc_mode = AFE_MEMORY_ALLOC_MORE_PSRAM,
-        .afe_linear_gain = 1.0,
-        .agc_mode = AFE_MN_PEAK_AGC_MODE_2,
-        .pcm_config = {
-            .total_ch_num = channels_,
-            .mic_num = channels_ - ref_num,
-            .ref_num = ref_num,
-            .sample_rate = 16000},
-        .debug_init = false,
-        .debug_hook = {{AFE_DEBUG_HOOK_MASE_TASK_IN, NULL}, {AFE_DEBUG_HOOK_FETCH_TASK_IN, NULL}},
-        .afe_ns_mode = NS_MODE_SSP,
-        .afe_ns_model_name = NULL,
-        .fixed_first_channel = true,
-    };
-
-    afe_detection_data_ = esp_afe_sr_v1.create_from_config(&afe_config);
-    if (USE_COMMAND_WAKE)
-    {
-        // Initialize MultiNet
-        multinet_ = esp_mn_handle_from_name(const_cast<char *>(multinet_model_name_.c_str()));
-        model_data_ = multinet_->create(const_cast<char *>(multinet_model_name_.c_str()), 16000);
-
-        // Add custom commands
-        esp_mn_commands_clear();
-        esp_mn_commands_add(TIAN_XIAO_HU_CODE, TIAN_XIAO_HU);
-        esp_mn_commands_add(TIAN_XIAO_MEI_CODE, TIAN_XIAO_MEI);
-        esp_mn_commands_add(XIAO_YU_XIAO_YU_CODE, XIAO_YU_XIAO_YU);
-        esp_mn_commands_update();
-
-        multinet_->print_active_speech_commands(model_data_);
+    std::string input_format;
+    for (int i = 0; i < channels_ - ref_num; i++) {
+        input_format.push_back('M');
     }
+    for (int i = 0; i < ref_num; i++) {
+        input_format.push_back('R');
+    }
+    afe_config_t* afe_config = afe_config_init(input_format.c_str(), models, AFE_TYPE_SR, AFE_MODE_HIGH_PERF);
+    afe_config->aec_init = reference_;
+    afe_config->aec_mode = AEC_MODE_SR_HIGH_PERF;
+    afe_config->afe_perferred_core = 1;
+    afe_config->afe_perferred_priority = 1;
+    afe_config->memory_alloc_mode = AFE_MEMORY_ALLOC_MORE_PSRAM;
+    
+    afe_iface_ = esp_afe_handle_from_config(afe_config);
+    afe_data_ = afe_iface_->create_from_config(afe_config);
 
     xTaskCreate([](void *arg)
                 {
         auto this_ = (WakeWordDetect*)arg;
         this_->AudioDetectionTask();
-        vTaskDelete(NULL); }, "audio_detection", 4096 * 2, this, 1, nullptr);
+        vTaskDelete(NULL);
+    }, "audio_detection", 4096, this, 3, nullptr);
 }
 
 void WakeWordDetect::OnWakeWordDetected(std::function<void(const std::string &wake_word)> callback)
@@ -146,6 +116,7 @@ void WakeWordDetect::StartDetection()
 void WakeWordDetect::StopDetection()
 {
     xEventGroupClearBits(event_group_, DETECTION_RUNNING_EVENT);
+    afe_iface_->reset_buffer(afe_data_);
 }
 
 bool WakeWordDetect::IsDetectionRunning()
@@ -157,10 +128,9 @@ void WakeWordDetect::Feed(const std::vector<int16_t> &data)
 {
     input_buffer_.insert(input_buffer_.end(), data.begin(), data.end());
 
-    auto feed_size = esp_afe_sr_v1.get_feed_chunksize(afe_detection_data_) * channels_;
-    while (input_buffer_.size() >= feed_size)
-    {
-        esp_afe_sr_v1.feed(afe_detection_data_, input_buffer_.data());
+    auto feed_size = afe_iface_->get_feed_chunksize(afe_data_) * channels_;
+    while (input_buffer_.size() >= feed_size) {
+        afe_iface_->feed(afe_data_, input_buffer_.data());
         input_buffer_.erase(input_buffer_.begin(), input_buffer_.begin() + feed_size);
     }
 }
@@ -195,6 +165,9 @@ void WakeWordDetect::AudioDetectionTask()
 {
     auto fetch_size = esp_afe_sr_v1.get_fetch_chunksize(afe_detection_data_);
     auto feed_size = esp_afe_sr_v1.get_feed_chunksize(afe_detection_data_);
+void WakeWordDetect::AudioDetectionTask() {
+    auto fetch_size = afe_iface_->get_fetch_chunksize(afe_data_);
+    auto feed_size = afe_iface_->get_feed_chunksize(afe_data_);
     ESP_LOGI(TAG, "Audio detection task started, feed size: %d fetch size: %d",
              feed_size, fetch_size);
 
@@ -202,6 +175,9 @@ void WakeWordDetect::AudioDetectionTask()
     {
         xEventGroupWaitBits(event_group_, DETECTION_RUNNING_EVENT, pdFALSE, pdTRUE, portMAX_DELAY);
 
+        auto res = afe_iface_->fetch_with_delay(afe_data_, portMAX_DELAY);
+        if (res == nullptr || res->ret_value == ESP_FAIL) {
+            continue;;
         auto res = esp_afe_sr_v1.fetch(afe_detection_data_);
         if (res == nullptr || res->ret_value == ESP_FAIL)
         {
