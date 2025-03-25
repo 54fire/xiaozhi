@@ -18,10 +18,10 @@ set(SOURCES "audio_codecs/audio_codec.cc"
             "settings.cc"
             "background_task.cc"
             "main.cc"
-            "offline.cc"
+            
             )
 
-set(INCLUDE_DIRS "." "display" "audio_codecs" "protocols" "audio_processing")
+set(INCLUDE_DIRS "." "display" "audio_codecs" "protocols" "audio_processing" "offline")
 
 # 添加 IOT 相关文件
 file(GLOB IOT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/iot/things/*.cc)
@@ -153,6 +153,7 @@ if(CONFIG_IDF_TARGET_ESP32S3)
     "sensors/sensor_led.cc"
     "sensors/touch.cc"
     "sdcard/sd_card.cc")
+    
 endif()
 
 if(CONFIG_USE_AUDIO_PROCESSOR)
@@ -163,7 +164,20 @@ if(CONFIG_USE_WAKE_WORD_DETECT)
 endif()
 
 # 根据Kconfig选择语言目录
-if(CONFIG_LANGUAGE_ZH_CN)
+if(CONFIG_LAN_XIAOHONGMEI)
+    set(LANG_DIR "xiaohongmei")
+    list(APPEND SOURCES 
+    "offline/offline_base.cc"
+    "offline/fns_offline.cc"
+    "offline/fql_offline.cc"
+    "offline/fxq_offline.cc"
+    "offline/online.cc"
+    "offline/offline_scene_manager.cc"
+    )
+
+elseif(CONFIG_LAN_XIAOHUOGUO)
+    set(LANG_DIR "xiaohuoguo")    
+elseif(CONFIG_LANGUAGE_ZH_CN)
     set(LANG_DIR "zh-CN")
 elseif(CONFIG_LANGUAGE_ZH_TW)
     set(LANG_DIR "zh-TW")

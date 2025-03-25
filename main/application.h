@@ -17,7 +17,7 @@
 #include "protocol.h"
 #include "ota.h"
 #include "background_task.h"
-#include "offline.h"
+#include "offline_scene_manager.h"
 
 #if CONFIG_USE_WAKE_WORD_DETECT
 #include "wake_word_detect.h"
@@ -74,7 +74,10 @@ public:
     void Reboot();
     void WakeWordInvoke(const std::string& wake_word);
     void PlaySound(const std::string_view& sound);
+    void StopPlayback(); 
     bool CanEnterSleepMode();
+    void ClearAudioCache();
+    void ResetAudioDecoder();
 
 private:
     Application();

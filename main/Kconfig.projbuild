@@ -9,10 +9,9 @@ config OTA_VERSION_URL
 
 choice
     prompt "语言选择"
-    default LANGUAGE_ZH_CN
+    default LAN_XIAOHONGMEI
     help
         Select device display language
-
     config LANGUAGE_ZH_CN
         bool "Chinese"
     config LANGUAGE_ZH_TW
@@ -21,6 +20,10 @@ choice
         bool "English"
     config LANGUAGE_JA_JP
         bool "Japanese"
+    config LAN_XIAOHONGMEI
+        bool "xiaohongmei"
+    config LAN_XIAOHUOGUO
+        bool "xiaohuoguo"
 endchoice
 
 

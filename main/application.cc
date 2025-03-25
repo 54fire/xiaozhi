@@ -245,8 +245,6 @@ void Application::ToggleChatState() {
 
     if (!protocol_) {
         ESP_LOGE(TAG, "Protocol not initialized");
-        OfflineAudioPlayer& player = OfflineAudioPlayer::getInstance();
-        PlaySound(player.getNextSound());
         return;
     }
 
@@ -833,6 +831,14 @@ void Application::WakeWordInvoke(const std::string& wake_word) {
     }
 }
 
+void Application::ClearAudioCache() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    audio_decode_queue_.clear();
+    opus_decoder_->ResetState();
+}
+void Application::ResetAudioDecoder() {
+    opus_decoder_->ResetState();
+}
 bool Application::CanEnterSleepMode() {
     if (device_state_ != kDeviceStateIdle) {
         return false;
@@ -846,6 +852,12 @@ bool Application::CanEnterSleepMode() {
     return true;
 }
 
+
+void Application::StopPlayback() {
+    AbortSpeaking(kAbortReasonNone);
+    ClearAudioCache();
+    ResetAudioDecoder();
+}
 void Application::SensorEventTask()
 {
     #if CONFIG_IDF_TARGET_ESP32S3
