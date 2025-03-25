@@ -13,7 +13,7 @@ class OfflineSceneManager
 private:
     std::map<std::string, std::unique_ptr<OfflineBase>> registered_scenes_;
     std::array<std::string, 4> scene_names_ = {"fxq", "fns", "fql", "online"};
-    size_t current_scene_index_ = 0;
+    size_t current_scene_index_ = 3;
     OfflineBase *current_player_;
 
     // 单例相关成员

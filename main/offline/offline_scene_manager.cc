@@ -18,7 +18,7 @@ OfflineSceneManager::OfflineSceneManager() : current_player_(nullptr)
     registered_scenes_["online"] = std::make_unique<OnlineOfflinePlayer>();
 
     // 初始切换到Fxq模式
-    current_player_ = registered_scenes_["fxq"].get();
+    current_player_ = registered_scenes_["online"].get();
 }
 
 OfflineSceneManager::~OfflineSceneManager()
