@@ -281,8 +281,8 @@ void Application::ToggleChatState()
     if (!protocol_)
     {
         ESP_LOGE(TAG, "Protocol not initialized");
-        StopPlaybackAndReset();
-        PlaySound(Lang::Sounds::P3_WIFICONFIG);
+        // StopPlaybackAndReset();
+        // PlaySound(Lang::Sounds::P3_WIFICONFIG);
         return;
     }
 
@@ -936,7 +936,7 @@ void Application::WakeWordInvoke(const std::string &wake_word)
 
 void Application::ClearAudioCache()
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    // std::lock_guard<std::mutex> lock(mutex_);
     audio_decode_queue_.clear();
     opus_decoder_->ResetState();
 }
@@ -964,7 +964,7 @@ void Application::StopPlaybackAndReset()
 {
     AbortSpeaking(kAbortReasonNone);
     background_task_->WaitForCompletion();
-    vTaskDelay(pdMS_TO_TICKS(300));
+    vTaskDelay(pdMS_TO_TICKS(500));
     ClearAudioCache();
     ResetAudioDecoder();
     aborted_ = false;
