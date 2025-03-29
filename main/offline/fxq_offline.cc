@@ -162,3 +162,7 @@ const std::string_view  FxqOfflinePlayer::getHelloSound() const
 {
     return Lang::Sounds::P3_FXQ;
 }
+const char* FxqOfflinePlayer::get_tag()   const
+{
+    return "Fxq";
+}

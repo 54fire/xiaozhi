@@ -74,7 +74,7 @@ public:
     void Reboot();
     void WakeWordInvoke(const std::string& wake_word);
     void PlaySound(const std::string_view& sound);
-    void StopPlayback(); 
+    void StopPlaybackAndReset(); 
     bool CanEnterSleepMode();
     void ClearAudioCache();
     void ResetAudioDecoder();

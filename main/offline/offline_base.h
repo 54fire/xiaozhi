@@ -23,6 +23,8 @@ public:
     std::string_view getPrevSound();
 
     virtual const std::string_view getHelloSound() const = 0; 
+    
+    virtual const char *get_tag() const = 0;   
 
     // 重置播放索引
     virtual void reset();

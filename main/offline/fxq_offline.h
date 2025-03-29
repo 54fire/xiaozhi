@@ -11,6 +11,7 @@ public:
     FxqOfflinePlayer();
     const std::vector<std::string_view>& getSounds() const override;
     const std::string_view getHelloSound() const  override;
+    const char* get_tag() const  override;
 };
 
 #endif // FXQ_OFFLINE_PLAYER_H

@@ -36,7 +36,7 @@ static const char *const STATE_STRINGS[] = {
 Application::Application()
 {
     event_group_ = xEventGroupCreate();
-    background_task_ = new BackgroundTask(4096 * 8);
+    background_task_ = new BackgroundTask(4096 * 4);
     esp_timer_create_args_t clock_timer_args = {
         .callback = [](void *arg)
         {
@@ -236,6 +236,7 @@ void Application::DismissAlert()
 
 void Application::PlaySound(const std::string_view &sound)
 {
+
     auto codec = Board::GetInstance().GetAudioCodec();
     codec->EnableOutput(true);
     SetDecodeSampleRate(16000);
@@ -243,17 +244,29 @@ void Application::PlaySound(const std::string_view &sound)
     size_t size = sound.size();
     for (const char *p = data; p < data + size;)
     {
-        auto p3 = (BinaryProtocol3 *)p;
-        p += sizeof(BinaryProtocol3);
+        if (aborted_)
+        {
+            break;
+        }
+        try
+        {
+            auto p3 = (BinaryProtocol3 *)p;
+            p += sizeof(BinaryProtocol3);
 
-        auto payload_size = ntohs(p3->payload_size);
-        std::vector<uint8_t> opus;
-        opus.resize(payload_size);
-        memcpy(opus.data(), p3->payload, payload_size);
-        p += payload_size;
+            auto payload_size = ntohs(p3->payload_size);
+            std::vector<uint8_t> opus;
+            opus.resize(payload_size);
+            memcpy(opus.data(), p3->payload, payload_size);
+            p += payload_size;
 
-        std::lock_guard<std::mutex> lock(mutex_);
-        audio_decode_queue_.emplace_back(std::move(opus));
+            std::lock_guard<std::mutex> lock(mutex_);
+            audio_decode_queue_.emplace_back(std::move(opus));
+        }
+        catch (const std::bad_alloc &e)
+        {
+            ESP_LOGE("PlaySound", "Memory allocation failed: %s", e.what());
+            break;
+        }
     }
 }
 
@@ -268,6 +281,8 @@ void Application::ToggleChatState()
     if (!protocol_)
     {
         ESP_LOGE(TAG, "Protocol not initialized");
+        StopPlaybackAndReset();
+        PlaySound(Lang::Sounds::P3_WIFICONFIG);
         return;
     }
 
@@ -621,7 +636,7 @@ void Application::MainLoop()
                                         SCHEDULE_EVENT | AUDIO_INPUT_READY_EVENT | AUDIO_OUTPUT_READY_EVENT,
                                         pdTRUE, pdFALSE, portMAX_DELAY);
 
-        if (bits & AUDIO_INPUT_READY_EVENT)
+        if (OfflineSceneManager::getInstance()->isOnlineScene() && (bits & AUDIO_INPUT_READY_EVENT))
         {
             InputAudio();
         }
@@ -671,7 +686,7 @@ void Application::OutputAudio()
         return;
     }
 
-    if (device_state_ == kDeviceStateListening)
+    if (device_state_ == kDeviceStateListening || aborted_)
     {
         audio_decode_queue_.clear();
         return;
@@ -684,24 +699,35 @@ void Application::OutputAudio()
 
     background_task_->Schedule([this, codec, opus = std::move(opus)]() mutable
                                {
-        if (aborted_) {
-            return;
-        }
+                                   if (aborted_)
+                                   {
+                                       audio_decode_queue_.clear();
+                                       return;
+                                   }
 
-        std::vector<int16_t> pcm;
-        if (!opus_decoder_->Decode(std::move(opus), pcm)) {
-            return;
-        }
+                                   std::vector<int16_t> pcm;
+                                   if (!opus_decoder_->Decode(std::move(opus), pcm))
+                                   {
+                                       return;
+                                   }
+                                //    ESP_LOGI("OutputAudio", "pcm: %d", pcm.size());
+                                   try
+                                   {
+                                       // Resample if the sample rate is different
+                                       if (opus_decode_sample_rate_ != codec->output_sample_rate())
+                                       {
+                                           int target_size = output_resampler_.GetOutputSamples(pcm.size());
+                                           std::vector<int16_t> resampled(target_size);
+                                           output_resampler_.Process(pcm.data(), pcm.size(), resampled.data());
+                                           pcm = std::move(resampled);
+                                       }
 
-        // Resample if the sample rate is different
-        if (opus_decode_sample_rate_ != codec->output_sample_rate()) {
-            int target_size = output_resampler_.GetOutputSamples(pcm.size());
-            std::vector<int16_t> resampled(target_size);
-            output_resampler_.Process(pcm.data(), pcm.size(), resampled.data());
-            pcm = std::move(resampled);
-        }
-        
-        codec->OutputData(pcm); });
+                                       codec->OutputData(pcm);
+                                   }
+                                   catch (const std::bad_alloc &e)
+                                   {
+                                       ESP_LOGE("OutputAudio", "Memory allocation failed: %s", e.what());
+                                   } });
 }
 
 void Application::InputAudio()
@@ -934,11 +960,14 @@ bool Application::CanEnterSleepMode()
     return true;
 }
 
-void Application::StopPlayback()
+void Application::StopPlaybackAndReset()
 {
-    // AbortSpeaking(kAbortReasonNone);
-    // ClearAudioCache();
-    // ResetAudioDecoder();
+    AbortSpeaking(kAbortReasonNone);
+    background_task_->WaitForCompletion();
+    vTaskDelay(pdMS_TO_TICKS(300));
+    ClearAudioCache();
+    ResetAudioDecoder();
+    aborted_ = false;
 }
 void Application::SensorEventTask()
 {

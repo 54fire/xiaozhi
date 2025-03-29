@@ -74,11 +74,13 @@ private:
 
     void ToggleChatState()
     {
+         auto &app = Application::GetInstance();
         if (!manager_->isOnlineScene())
         {
+            app.StopPlaybackAndReset();
             return;
         }
-        auto &app = Application::GetInstance();
+       
         if (app.GetDeviceState() == kDeviceStateStarting && !WifiStation::GetInstance().IsConnected())
         {
             ResetWifiConfiguration();
@@ -92,12 +94,11 @@ private:
     void InitializeButtons()
     {
         boot_button_.OnClick([this]()
-                             { ToggleChatState(); });
+                             { 
+                                ToggleChatState(); });
 
         boot_button_.OnLongPress([this]()
-                                 {
-                                     manager_->switchToNextScene();
-                                 });
+                                 { manager_->switchToNextScene(); });
 
         boot_button_.OnPressDown([this]()
                                  {
@@ -115,12 +116,11 @@ private:
 
         next_button_.OnClick([this]()
                              {
-                                 ESP_LOGI(TAG, "next button clicked");
+                                //  ESP_LOGI(TAG, "next button clicked");
                                  ToggleChatState();
                                  if (!manager_->isOnlineScene()){
                                      manager_->playNextSound();
-                                 }
-                             });
+                                 } });
         next_button_.OnLongPress([this]()
                                  {
             auto codec = GetAudioCodec();
@@ -130,16 +130,22 @@ private:
                 volume = 100;
             }
             codec->SetOutputVolume(volume);
+            auto &app = Application::GetInstance();
+            if(volume==100){
+                app.PlaySound(Lang::Sounds::P3_MAX_VOLUME);
+            }else{
+                app.PlaySound(Lang::Sounds::P3_SUCCESS);
+
+            }
             GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume)); });
 
         prev_button_.OnClick([this]()
                              {
-                                 ESP_LOGI(TAG, "prev button clicked");
+                                //  ESP_LOGI(TAG, "prev button clicked");
                                  ToggleChatState();
                                  if (!manager_->isOnlineScene()){
                                      manager_->playPrevSound();
-                                 }
-                             });
+                                 } });
         prev_button_.OnLongPress([this]()
                                  {
             auto codec = GetAudioCodec();
@@ -149,6 +155,13 @@ private:
                 volume = 10;
             }
             codec->SetOutputVolume(volume);
+             auto &app = Application::GetInstance();
+            if(volume==10){
+                app.PlaySound(Lang::Sounds::P3_MIN_VOLUME);
+            }else{
+                app.PlaySound(Lang::Sounds::P3_SUCCESS);
+
+            }
             GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume)); });
     }
 
@@ -189,6 +202,7 @@ public:
         static Es8311AudioCodec audio_codec(codec_i2c_bus_, I2C_NUM_0, AUDIO_INPUT_SAMPLE_RATE, AUDIO_OUTPUT_SAMPLE_RATE,
                                             AUDIO_I2S_GPIO_MCLK, AUDIO_I2S_GPIO_BCLK, AUDIO_I2S_GPIO_WS, AUDIO_I2S_GPIO_DOUT, AUDIO_I2S_GPIO_DIN,
                                             AUDIO_CODEC_PA_PIN, AUDIO_CODEC_ES8311_ADDR);
+
         return &audio_codec;
     }
 

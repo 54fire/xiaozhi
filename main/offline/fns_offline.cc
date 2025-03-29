@@ -1,8 +1,7 @@
 #include "fns_offline.h"
 
 FnsOfflinePlayer::FnsOfflinePlayer()
-    : FNS_SOUNDS({
-                  Lang::Sounds::P3_NS1,
+    : FNS_SOUNDS({Lang::Sounds::P3_NS1,
                   Lang::Sounds::P3_NS2,
                   Lang::Sounds::P3_NS3,
                   Lang::Sounds::P3_NS4,
@@ -102,15 +101,19 @@ FnsOfflinePlayer::FnsOfflinePlayer()
                   Lang::Sounds::P3_NS98,
                   Lang::Sounds::P3_NS99,
                   Lang::Sounds::P3_NS100,
-                  Lang::Sounds::P3_NS101
-                  }) {}
+                  Lang::Sounds::P3_NS101}) {}
 
 const std::vector<std::string_view> &FnsOfflinePlayer::getSounds() const
 {
     return FNS_SOUNDS;
 }
 
-const std::string_view  FnsOfflinePlayer::getHelloSound() const
+const std::string_view FnsOfflinePlayer::getHelloSound() const
 {
     return Lang::Sounds::P3_FNS;
+}
+
+const char* FnsOfflinePlayer::get_tag()  const
+{
+    return "Fns";
 }

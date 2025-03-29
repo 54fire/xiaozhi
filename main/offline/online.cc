@@ -11,3 +11,8 @@ const std::string_view  OnlineOfflinePlayer::getHelloSound() const
 {
     return Lang::Sounds::P3_WIFICONFIG;
 }
+
+const char*  OnlineOfflinePlayer::get_tag()  const
+{
+    return "online";
+}

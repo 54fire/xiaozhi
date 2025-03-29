@@ -65,3 +65,8 @@ const std::string_view  FqlOfflinePlayer::getHelloSound() const
 {
     return Lang::Sounds::P3_FQL;
 }
+
+const char* FqlOfflinePlayer::get_tag() const 
+{
+    return "fql";
+}
