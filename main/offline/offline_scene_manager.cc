@@ -46,7 +46,6 @@ void OfflineSceneManager::switchToNextScene() {
     current_player_ = registered_scenes_[next_scene_name].get();
     std::cout << "Switched to scene: " << next_scene_name << std::endl;
      auto &app = Application::GetInstance();
-     app.StopPlaybackAndReset();
      app.PlaySound(current_player_->getHelloSound());
 }
 
@@ -76,14 +75,12 @@ std::string_view OfflineSceneManager::getNextSound()
 void OfflineSceneManager::playNextSound()
 {
     auto &app = Application::GetInstance();
-     app.StopPlaybackAndReset();
      app.PlaySound(current_player_->getNextSound());
 }
 
 void OfflineSceneManager::playPrevSound()
 {
     auto &app = Application::GetInstance();
-     app.StopPlaybackAndReset();
      app.PlaySound(current_player_->getPrevSound());
 }
 

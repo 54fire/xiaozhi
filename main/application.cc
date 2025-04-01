@@ -281,8 +281,6 @@ void Application::ToggleChatState()
     if (!protocol_)
     {
         ESP_LOGE(TAG, "Protocol not initialized");
-        // StopPlaybackAndReset();
-        // PlaySound(Lang::Sounds::P3_WIFICONFIG);
         return;
     }
 
@@ -962,13 +960,17 @@ bool Application::CanEnterSleepMode()
 
 void Application::StopPlaybackAndReset()
 {
+    ESP_LOGI(TAG, "StopPlaybackAndReset...");
     AbortSpeaking(kAbortReasonNone);
+   
+    // BackgroundTask::ForceMemoryCleanup();
+    vTaskDelay(pdMS_TO_TICKS(200));
     background_task_->WaitForCompletion();
-    vTaskDelay(pdMS_TO_TICKS(500));
     ClearAudioCache();
     ResetAudioDecoder();
     aborted_ = false;
 }
+
 void Application::SensorEventTask()
 {
 #if CONFIG_IDF_TARGET_ESP32S3
