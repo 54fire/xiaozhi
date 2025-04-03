@@ -33,7 +33,7 @@ private:
 
     void InitializePowerSaveTimer()
     {
-        power_save_timer_ = new PowerSaveTimer(160, 60);
+        power_save_timer_ = new PowerSaveTimer(160, 10);
         power_save_timer_->OnEnterSleepMode([this]()
                                             {
             ESP_LOGI(TAG, "Enabling sleep mode");
@@ -100,19 +100,19 @@ private:
         boot_button_.OnLongPress([this]()
                                  { manager_->switchToNextScene(); });
 
-        boot_button_.OnPressDown([this]()
-                                 {
-            power_save_timer_->WakeUp();
-            if (press_to_talk_enabled_)
-            {
-                Application::GetInstance().StartListening();
-            } });
-        boot_button_.OnPressUp([this]()
-                               {
-            if (press_to_talk_enabled_)
-            {
-                Application::GetInstance().StopListening();
-            } });
+        // boot_button_.OnPressDown([this]()
+        //                          {
+        //     power_save_timer_->WakeUp();
+        //     if (press_to_talk_enabled_)
+        //     {
+        //         Application::GetInstance().StartListening();
+        //     } });
+        // boot_button_.OnPressUp([this]()
+        //                        {
+        //     if (press_to_talk_enabled_)
+        //     {
+        //         Application::GetInstance().StopListening();
+        //     } });
 
         next_button_.OnClick([this]()
                              {

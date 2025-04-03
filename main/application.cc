@@ -236,7 +236,7 @@ void Application::DismissAlert()
 
 void Application::PlaySound(const std::string_view &sound)
 {
-
+    SetDeviceState(kDeviceStateSpeaking);
     auto codec = Board::GetInstance().GetAudioCodec();
     codec->EnableOutput(true);
     SetDecodeSampleRate(16000);
@@ -268,6 +268,7 @@ void Application::PlaySound(const std::string_view &sound)
             break;
         }
     }
+    SetDeviceState(kDeviceStateIdle);
 }
 
 void Application::ToggleChatState()
@@ -452,8 +453,9 @@ void Application::Start()
             display->SetChatMessage("system", "");
             SetDeviceState(kDeviceStateIdle);
         }); });
-    protocol_->OnIncomingJson([this, display](const cJSON *root)
-                              {
+    protocol_->OnIncomingJson([this, display](const cJSON *root) {
+        bool is_online_ = OfflineSceneManager::getInstance()->isOnlineScene();
+        if (!is_online_) { return; }
         // Parse JSON data
         auto type = cJSON_GetObjectItem(root, "type");
         if (strcmp(type->valuestring, "tts") == 0) {
