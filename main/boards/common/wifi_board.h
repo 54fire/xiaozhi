@@ -6,6 +6,7 @@
 class WifiBoard : public Board {
 protected:
     bool wifi_config_mode_ = false;
+    bool wifi_config_pause_ = false;
 
     WifiBoard();
     void EnterWifiConfigMode();
@@ -14,6 +15,8 @@ protected:
 public:
     virtual std::string GetBoardType() override;
     virtual void StartNetwork() override;
+    virtual void EndNetwork() override;
+    virtual inline bool StatusNetwork() override { return wifi_config_mode_; };
     virtual Http* CreateHttp() override;
     virtual WebSocket* CreateWebSocket() override;
     virtual Mqtt* CreateMqtt() override;

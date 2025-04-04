@@ -121,6 +121,9 @@ private:
     OpusResampler reference_resampler_;
     OpusResampler output_resampler_;
 
+    // Output audio silence seconds
+    int max_silence_seconds_ = 30;
+
     void MainLoop();
     void InputAudio();
     void OutputAudio();

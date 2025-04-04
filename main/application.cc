@@ -16,6 +16,7 @@
 #include <driver/gpio.h>
 #include <arpa/inet.h>
 #include <esp_app_desc.h>
+#include <esp_task_wdt.h>
 
 #define TAG "Application"
 #define CONFIG_OTA_VERSION_URL_ZLY "https://ota.zxzyn.com/big/"
@@ -236,12 +237,14 @@ void Application::DismissAlert()
 
 void Application::PlaySound(const std::string_view &sound)
 {
-    SetDeviceState(kDeviceStateSpeaking);
     auto codec = Board::GetInstance().GetAudioCodec();
     codec->EnableOutput(true);
     SetDecodeSampleRate(16000);
+    SetDeviceState(kDeviceStateSpeaking);
+
     const char *data = sound.data();
     size_t size = sound.size();
+    ESP_LOGI(TAG, "sound.size: %u, free internal: %u, minimal internal: %u", size, heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL));
     for (const char *p = data; p < data + size;)
     {
         if (aborted_)
@@ -252,7 +255,6 @@ void Application::PlaySound(const std::string_view &sound)
         {
             auto p3 = (BinaryProtocol3 *)p;
             p += sizeof(BinaryProtocol3);
-
             auto payload_size = ntohs(p3->payload_size);
             std::vector<uint8_t> opus;
             opus.resize(payload_size);
@@ -261,6 +263,7 @@ void Application::PlaySound(const std::string_view &sound)
 
             std::lock_guard<std::mutex> lock(mutex_);
             audio_decode_queue_.emplace_back(std::move(opus));
+            opus.clear();
         }
         catch (const std::bad_alloc &e)
         {
@@ -268,7 +271,6 @@ void Application::PlaySound(const std::string_view &sound)
             break;
         }
     }
-    SetDeviceState(kDeviceStateIdle);
 }
 
 void Application::ToggleChatState()
@@ -413,6 +415,8 @@ void Application::Start()
 
     /* Wait for the network to be ready */
     board.StartNetwork();
+
+    if (!board.StatusNetwork()) return;
 
     // Initialize the protocol
     display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
@@ -669,18 +673,21 @@ void Application::OutputAudio()
 {
     auto now = std::chrono::steady_clock::now();
     auto codec = Board::GetInstance().GetAudioCodec();
-    const int max_silence_seconds = 10;
 
     std::unique_lock<std::mutex> lock(mutex_);
     if (audio_decode_queue_.empty())
     {
         // Disable the output if there is no audio data for a long time
-        if (device_state_ == kDeviceStateIdle)
+        if (
+            device_state_ == kDeviceStateIdle || 
+            (!OfflineSceneManager::getInstance()->isOnlineScene() && device_state_ == kDeviceStateSpeaking)
+        )
         {
             auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - last_output_time_).count();
-            if (duration > max_silence_seconds)
+            if (duration > max_silence_seconds_)
             {
                 codec->EnableOutput(false);
+                if (device_state_ != kDeviceStateIdle) SetDeviceState(kDeviceStateIdle);
             }
         }
         return;
@@ -696,38 +703,42 @@ void Application::OutputAudio()
     auto opus = std::move(audio_decode_queue_.front());
     audio_decode_queue_.pop_front();
     lock.unlock();
-
-    background_task_->Schedule([this, codec, opus = std::move(opus)]() mutable
-                               {
-                                   if (aborted_)
-                                   {
-                                       audio_decode_queue_.clear();
-                                       return;
-                                   }
-
-                                   std::vector<int16_t> pcm;
-                                   if (!opus_decoder_->Decode(std::move(opus), pcm))
-                                   {
-                                       return;
-                                   }
-                                //    ESP_LOGI("OutputAudio", "pcm: %d", pcm.size());
-                                   try
-                                   {
-                                       // Resample if the sample rate is different
-                                       if (opus_decode_sample_rate_ != codec->output_sample_rate())
-                                       {
-                                           int target_size = output_resampler_.GetOutputSamples(pcm.size());
-                                           std::vector<int16_t> resampled(target_size);
-                                           output_resampler_.Process(pcm.data(), pcm.size(), resampled.data());
-                                           pcm = std::move(resampled);
-                                       }
-
-                                       codec->OutputData(pcm);
-                                   }
-                                   catch (const std::bad_alloc &e)
-                                   {
-                                       ESP_LOGE("OutputAudio", "Memory allocation failed: %s", e.what());
-                                   } });
+    try {
+        background_task_->Schedule([this, codec, opus = std::move(opus)]() mutable {
+            if (aborted_)
+            {
+                audio_decode_queue_.clear();
+                return;
+            }
+            try
+            {
+                std::vector<int16_t> pcm;
+                if (!opus_decoder_->Decode(std::move(opus), pcm))
+                {
+                    return;
+                }
+                // Resample if the sample rate is different
+                if (opus_decode_sample_rate_ != codec->output_sample_rate())
+                {
+                    int target_size = output_resampler_.GetOutputSamples(pcm.size());
+                    std::vector<int16_t> resampled(target_size);
+                    output_resampler_.Process(pcm.data(), pcm.size(), resampled.data());
+                    pcm = std::move(resampled);
+                }
+    
+                codec->OutputData(pcm);
+                pcm.clear();
+                opus.clear();
+            }
+            catch (const std::bad_alloc &e)
+            {
+                audio_decode_queue_.clear();
+                ESP_LOGE("OutputAudio", "Memory allocation failed: %s", e.what());
+            } 
+        });
+    } catch (const std::exception &e) {
+        ESP_LOGE(TAG, "background_task_->Schedule failed: %s", e.what());
+    } 
 }
 
 void Application::InputAudio()

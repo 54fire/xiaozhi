@@ -102,11 +102,30 @@ void WifiBoard::StartNetwork() {
 
     // Try to connect to WiFi, if failed, launch the WiFi configuration AP
     if (!wifi_station.WaitForConnected(60 * 1000)) {
+        if (!OfflineSceneManager::getInstance()->isOnlineScene()) {
+            return;
+        }
         wifi_station.Stop();
         wifi_config_mode_ = true;
         EnterWifiConfigMode();
         return;
     }
+}
+
+void WifiBoard::EndNetwork() {
+    ESP_LOGI(TAG, "end network, wifi config mode: %d", wifi_config_mode_);
+    if (!wifi_config_mode_ && !wifi_config_pause_) {
+        auto& wifi_station = WifiStation::GetInstance();
+        wifi_station.Stop();
+        
+        auto& wifi_ap = WifiConfigurationAp::GetInstance();
+        wifi_ap.Stop();
+
+        auto& application = Application::GetInstance();
+        application.SetDeviceState(kDeviceStateIdle);
+
+        wifi_config_pause_ = true;
+    } 
 }
 
 Http* WifiBoard::CreateHttp() {

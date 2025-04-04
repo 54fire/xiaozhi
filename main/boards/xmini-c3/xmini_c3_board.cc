@@ -93,12 +93,19 @@ private:
 
     void InitializeButtons()
     {
-        boot_button_.OnClick([this]()
-                             { 
-                                ToggleChatState(); });
+        boot_button_.OnClick([this]() { 
+            ToggleChatState(); 
+            if (!manager_->isOnlineScene()){
+                manager_->playNextSound();
+            }
+        });
 
-        boot_button_.OnLongPress([this]()
-                                 { manager_->switchToNextScene(); });
+        boot_button_.OnLongPress([this]() { 
+            manager_->switchToNextScene();
+            if (!manager_->isOnlineScene()) {
+                EndNetwork();
+            }
+        });
 
         // boot_button_.OnPressDown([this]()
         //                          {
