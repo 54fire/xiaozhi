@@ -9,6 +9,7 @@
 #include <string>
 #include <mutex>
 #include <list>
+#include <deque>
 
 #include <opus_encoder.h>
 #include <opus_decoder.h>
@@ -111,7 +112,8 @@ private:
     // Audio encode / decode
     BackgroundTask *background_task_ = nullptr;
     std::chrono::steady_clock::time_point last_output_time_;
-    std::list<std::vector<uint8_t>> audio_decode_queue_;
+    // std::list<std::vector<uint8_t>> audio_decode_queue_;
+    std::deque<std::vector<uint8_t>> audio_decode_queue_;
 
     std::unique_ptr<OpusEncoderWrapper> opus_encoder_;
     std::unique_ptr<OpusDecoderWrapper> opus_decoder_;

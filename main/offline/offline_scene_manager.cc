@@ -45,8 +45,9 @@ void OfflineSceneManager::switchToNextScene() {
     std::string next_scene_name = scene_names_[current_scene_index_];
     current_player_ = registered_scenes_[next_scene_name].get();
     std::cout << "Switched to scene: " << next_scene_name << std::endl;
-     auto &app = Application::GetInstance();
-     app.PlaySound(current_player_->getHelloSound());
+    auto &app = Application::GetInstance();
+    app.StopPlaybackAndReset();
+    app.PlaySound(current_player_->getHelloSound());
 }
 
 OfflineBase *OfflineSceneManager::getCurrentPlayer()

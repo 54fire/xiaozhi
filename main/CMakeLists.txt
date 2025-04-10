@@ -176,7 +176,15 @@ if(CONFIG_LAN_XIAOHONGMEI)
     )
 
 elseif(CONFIG_LAN_XIAOHUOGUO)
-    set(LANG_DIR "xiaohuoguo")    
+    set(LANG_DIR "xiaohuoguo")
+    list(APPEND SOURCES 
+    "offline/offline_base.cc"
+    "offline/fns_offline.cc"
+    "offline/fql_offline.cc"
+    "offline/fxq_offline.cc"
+    "offline/online.cc"
+    "offline/offline_scene_manager.cc"
+    )
 elseif(CONFIG_LANGUAGE_ZH_CN)
     set(LANG_DIR "zh-CN")
 elseif(CONFIG_LANGUAGE_ZH_TW)

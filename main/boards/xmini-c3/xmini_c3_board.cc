@@ -95,9 +95,6 @@ private:
     {
         boot_button_.OnClick([this]() { 
             ToggleChatState(); 
-            if (!manager_->isOnlineScene()){
-                manager_->playNextSound();
-            }
         });
 
         boot_button_.OnLongPress([this]() { 

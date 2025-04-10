@@ -237,6 +237,7 @@ void Application::DismissAlert()
 
 void Application::PlaySound(const std::string_view &sound)
 {
+    ESP_LOGI(TAG, "audio queque size: %d", audio_decode_queue_.size());
     auto codec = Board::GetInstance().GetAudioCodec();
     codec->EnableOutput(true);
     SetDecodeSampleRate(16000);
@@ -244,11 +245,12 @@ void Application::PlaySound(const std::string_view &sound)
 
     const char *data = sound.data();
     size_t size = sound.size();
-    ESP_LOGI(TAG, "sound.size: %u, free internal: %u, minimal internal: %u", size, heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL));
+    ESP_LOGI(TAG, "PlaySound sound.size: %u", size);
     for (const char *p = data; p < data + size;)
     {
         if (aborted_)
         {
+            ESP_LOGI(TAG, "PlaySound aborted");
             break;
         }
         try
@@ -260,10 +262,7 @@ void Application::PlaySound(const std::string_view &sound)
             opus.resize(payload_size);
             memcpy(opus.data(), p3->payload, payload_size);
             p += payload_size;
-
-            std::lock_guard<std::mutex> lock(mutex_);
             audio_decode_queue_.emplace_back(std::move(opus));
-            opus.clear();
         }
         catch (const std::bad_alloc &e)
         {
@@ -271,6 +270,7 @@ void Application::PlaySound(const std::string_view &sound)
             break;
         }
     }
+    ESP_LOGI(TAG, "PlaySound free internal: %u, minimal internal: %u", heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL));
 }
 
 void Application::ToggleChatState()
@@ -727,8 +727,6 @@ void Application::OutputAudio()
                 }
     
                 codec->OutputData(pcm);
-                pcm.clear();
-                opus.clear();
             }
             catch (const std::bad_alloc &e)
             {
@@ -947,9 +945,10 @@ void Application::WakeWordInvoke(const std::string &wake_word)
 
 void Application::ClearAudioCache()
 {
-    // std::lock_guard<std::mutex> lock(mutex_);
+    ESP_LOGI(TAG, "ClearAudioCache audio_decode_queue_.size(): %d", audio_decode_queue_.size());
+    std::lock_guard<std::mutex> lock(mutex_);
     audio_decode_queue_.clear();
-    opus_decoder_->ResetState();
+    ResetAudioDecoder();
 }
 void Application::ResetAudioDecoder()
 {
@@ -978,7 +977,7 @@ void Application::StopPlaybackAndReset()
    
     // BackgroundTask::ForceMemoryCleanup();
     vTaskDelay(pdMS_TO_TICKS(200));
-    background_task_->WaitForCompletion();
+    // background_task_->WaitForCompletion();
     ClearAudioCache();
     ResetAudioDecoder();
     aborted_ = false;
