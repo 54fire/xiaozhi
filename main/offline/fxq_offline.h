@@ -5,11 +5,11 @@
 
 class FxqOfflinePlayer : public OfflineBase {
 private:
-    const std::vector<std::string_view> FXQ_SOUNDS;
+    const std::vector<int> FXQ_SOUNDS;
 
 public:
     FxqOfflinePlayer();
-    const std::vector<std::string_view>& getSounds() const override;
+    const std::vector<int>& getSounds() const override;
     const std::string_view getHelloSound() const  override;
     const char* get_tag() const  override;
 };

@@ -74,7 +74,7 @@ private:
 
     void ToggleChatState()
     {
-         auto &app = Application::GetInstance();
+        auto &app = Application::GetInstance();
         if (!manager_->isOnlineScene())
         {
             app.StopPlaybackAndReset();
@@ -83,6 +83,7 @@ private:
        
         if (app.GetDeviceState() == kDeviceStateStarting && !WifiStation::GetInstance().IsConnected())
         {
+            // TODO Reboot the device, not reboot wifi
             ResetWifiConfiguration();
         }
         if (!press_to_talk_enabled_)
@@ -93,15 +94,28 @@ private:
 
     void InitializeButtons()
     {
-        boot_button_.OnClick([this]() { 
-            ToggleChatState(); 
+        boot_button_.OnClick([this]() {
+            ToggleChatState();
+            if (manager_->isOnlineScene()){
+                power_save_timer_->WakeUp();
+            }
         });
 
         boot_button_.OnLongPress([this]() { 
             manager_->switchToNextScene();
+            auto &app = Application::GetInstance();
             if (!manager_->isOnlineScene()) {
-                EndNetwork();
+                // wifi is not connected or connecting, end network
+                if (!WifiStation::GetInstance().IsConnected()) {
+                    EndNetwork();
+                } else {
+                    auto &app = Application::GetInstance();
+                    app.CloseProtocol();
+                }
+            } else {
+                app.InitProtocol();
             }
+            app.SetDeviceState(kDeviceStateIdle);
         });
 
         // boot_button_.OnPressDown([this]()
@@ -118,15 +132,15 @@ private:
         //         Application::GetInstance().StopListening();
         //     } });
 
-        next_button_.OnClick([this]()
-                             {
-                                //  ESP_LOGI(TAG, "next button clicked");
-                                 ToggleChatState();
-                                 if (!manager_->isOnlineScene()){
-                                     manager_->playNextSound();
-                                 } });
-        next_button_.OnLongPress([this]()
-                                 {
+        next_button_.OnClick([this]() {
+            // ESP_LOGI(TAG, "next button clicked");
+
+            ToggleChatState();
+            if (!manager_->isOnlineScene()){
+                manager_->playNextSound();
+            }
+        });
+        next_button_.OnLongPress([this]() {
             auto codec = GetAudioCodec();
             auto volume = codec->output_volume() + 10;
             if (volume > 100)
@@ -135,13 +149,13 @@ private:
             }
             codec->SetOutputVolume(volume);
             auto &app = Application::GetInstance();
-            if(volume==100){
+            if (volume==100) {
                 app.PlaySound(Lang::Sounds::P3_MAX_VOLUME);
-            }else{
+            } else {
                 app.PlaySound(Lang::Sounds::P3_SUCCESS);
-
             }
-            GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume)); });
+            // GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume)); 
+        });
 
         prev_button_.OnClick([this]()
                              {
@@ -150,8 +164,7 @@ private:
                                  if (!manager_->isOnlineScene()){
                                      manager_->playPrevSound();
                                  } });
-        prev_button_.OnLongPress([this]()
-                                 {
+        prev_button_.OnLongPress([this]() {
             auto codec = GetAudioCodec();
             auto volume = codec->output_volume() - 10;
             if (volume < 10)
@@ -160,13 +173,13 @@ private:
             }
             codec->SetOutputVolume(volume);
              auto &app = Application::GetInstance();
-            if(volume==10){
+            if (volume==10) {
                 app.PlaySound(Lang::Sounds::P3_MIN_VOLUME);
-            }else{
+            } else {
                 app.PlaySound(Lang::Sounds::P3_SUCCESS);
-
             }
-            GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume)); });
+            // GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume)); 
+        });
     }
 
     // 物联网初始化，添加对 AI 可见设备

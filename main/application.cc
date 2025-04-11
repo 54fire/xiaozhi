@@ -16,7 +16,6 @@
 #include <driver/gpio.h>
 #include <arpa/inet.h>
 #include <esp_app_desc.h>
-#include <esp_task_wdt.h>
 
 #define TAG "Application"
 #define CONFIG_OTA_VERSION_URL_ZLY "https://ota.zxzyn.com/big/"
@@ -37,7 +36,7 @@ static const char *const STATE_STRINGS[] = {
 Application::Application()
 {
     event_group_ = xEventGroupCreate();
-    background_task_ = new BackgroundTask(4096 * 4);
+    background_task_ = new BackgroundTask(4096 * 8);
     esp_timer_create_args_t clock_timer_args = {
         .callback = [](void *arg)
         {
@@ -101,8 +100,7 @@ void Application::CheckNewVersion()
             } while (GetDeviceState() != kDeviceStateIdle);
 
             // Use main task to do the upgrade, not cancelable
-            Schedule([this, display]()
-                     {
+            Schedule([this, display]() {
                 SetDeviceState(kDeviceStateUpgrading);
                 
                 display->SetIcon(FONT_AWESOME_DOWNLOAD);
@@ -137,7 +135,8 @@ void Application::CheckNewVersion()
                 display->SetStatus(Lang::Strings::UPGRADE_FAILED);
                 ESP_LOGI(TAG, "Firmware upgrade failed...");
                 vTaskDelay(pdMS_TO_TICKS(3000));
-                Reboot(); });
+                Reboot(); 
+            });
 
             return;
         }
@@ -314,6 +313,7 @@ void Application::ToggleChatState()
 
 void Application::StartListening()
 {
+    ESP_LOGI(TAG, "StartListening");
     if (device_state_ == kDeviceStateActivating)
     {
         SetDeviceState(kDeviceStateIdle);
@@ -342,11 +342,11 @@ void Application::StartListening()
     }
     else if (device_state_ == kDeviceStateSpeaking)
     {
-        Schedule([this]()
-                 {
+        Schedule([this]() {
             AbortSpeaking(kAbortReasonNone);
             protocol_->SendStartListening(kListeningModeManualStop);
-            SetDeviceState(kDeviceStateListening); });
+            SetDeviceState(kDeviceStateListening); 
+        });
     }
 }
 
@@ -360,83 +360,28 @@ void Application::StopListening()
         } });
 }
 
-void Application::Start()
-{
-#if CONFIG_IDF_TARGET_ESP32S3
-    Sensor::Sensor_Init();
-#endif
+void Application::InitProtocol() {
     auto &board = Board::GetInstance();
-    SetDeviceState(kDeviceStateStarting);
-
-    /* Setup the display */
     auto display = board.GetDisplay();
-
-    /* Setup the audio codec */
-    auto codec = board.GetAudioCodec();
-    opus_decode_sample_rate_ = codec->output_sample_rate();
-    opus_decoder_ = std::make_unique<OpusDecoderWrapper>(opus_decode_sample_rate_, 1);
-    opus_encoder_ = std::make_unique<OpusEncoderWrapper>(16000, 1, OPUS_FRAME_DURATION_MS);
-    // For ML307 boards, we use complexity 5 to save bandwidth
-    // For other boards, we use complexity 3 to save CPU
-    if (board.GetBoardType() == "ml307")
-    {
-        ESP_LOGI(TAG, "ML307 board detected, setting opus encoder complexity to 5");
-        opus_encoder_->SetComplexity(5);
-    }
-    else
-    {
-        ESP_LOGI(TAG, "WiFi board detected, setting opus encoder complexity to 3");
-        opus_encoder_->SetComplexity(3);
-    }
-
-    if (codec->input_sample_rate() != 16000)
-    {
-        input_resampler_.Configure(codec->input_sample_rate(), 16000);
-        reference_resampler_.Configure(codec->input_sample_rate(), 16000);
-    }
-    codec->OnInputReady([this, codec]()
-                        {
-        BaseType_t higher_priority_task_woken = pdFALSE;
-        xEventGroupSetBitsFromISR(event_group_, AUDIO_INPUT_READY_EVENT, &higher_priority_task_woken);
-        return higher_priority_task_woken == pdTRUE; });
-    codec->OnOutputReady([this]()
-                         {
-        BaseType_t higher_priority_task_woken = pdFALSE;
-        xEventGroupSetBitsFromISR(event_group_, AUDIO_OUTPUT_READY_EVENT, &higher_priority_task_woken);
-        return higher_priority_task_woken == pdTRUE; });
-    codec->Start();
-
-    /* Start the main loop */
-    xTaskCreate([](void *arg)
-                {
-        Application* app = (Application*)arg;
-        app->MainLoop();
-        vTaskDelete(NULL); }, "main_loop", 4096 * 2, this, 4, nullptr);
-
-    /* Wait for the network to be ready */
-    board.StartNetwork();
-
-    if (!board.StatusNetwork()) return;
-
-    // Initialize the protocol
-    display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
-#ifdef CONFIG_CONNECTION_TYPE_WEBSOCKET
+     auto codec = board.GetAudioCodec();
+     
+    #ifdef CONFIG_CONNECTION_TYPE_WEBSOCKET
     protocol_ = std::make_unique<WebsocketProtocol>();
-#else
+    #else
     protocol_ = std::make_unique<MqttProtocol>();
-#endif
-    protocol_->OnNetworkError([this](const std::string &message)
-                              {
+    #endif
+    protocol_->OnNetworkError([this](const std::string &message) {
         SetDeviceState(kDeviceStateIdle);
-        Alert(Lang::Strings::ERROR, message.c_str(), "sad", Lang::Sounds::P3_EXCLAMATION); });
-    protocol_->OnIncomingAudio([this](std::vector<uint8_t> &&data)
-                               {
+        Alert(Lang::Strings::ERROR, message.c_str(), "sad", Lang::Sounds::P3_EXCLAMATION); 
+    });
+    protocol_->OnIncomingAudio([this](std::vector<uint8_t> &&data) {
+        if (!OfflineSceneManager::getInstance()->isOnlineScene()) return;
         std::lock_guard<std::mutex> lock(mutex_);
         if (device_state_ == kDeviceStateSpeaking) {
             audio_decode_queue_.emplace_back(std::move(data));
-        } });
-    protocol_->OnAudioChannelOpened([this, codec, &board]()
-                                    {
+        }
+    });
+    protocol_->OnAudioChannelOpened([this, codec, &board]() {
         board.SetPowerSaveMode(false);
         if (protocol_->server_sample_rate() != codec->output_sample_rate()) {
             ESP_LOGW(TAG, "Server sample rate %d does not match device output sample rate %d, resampling may cause distortion",
@@ -448,15 +393,16 @@ void Application::Start()
         std::string states;
         if (thing_manager.GetStatesJson(states, false)) {
             protocol_->SendIotStates(states);
-        } });
-    protocol_->OnAudioChannelClosed([this, &board]()
-                                    {
+        } 
+    });
+    protocol_->OnAudioChannelClosed([this, &board]() {
         board.SetPowerSaveMode(true);
         Schedule([this]() {
             auto display = Board::GetInstance().GetDisplay();
             display->SetChatMessage("system", "");
             SetDeviceState(kDeviceStateIdle);
-        }); });
+        }); 
+    });
     protocol_->OnIncomingJson([this, display](const cJSON *root) {
         bool is_online_ = OfflineSceneManager::getInstance()->isOnlineScene();
         if (!is_online_) { return; }
@@ -516,76 +462,144 @@ void Application::Start()
                     thing_manager.Invoke(command);
                 }
             }
-        } });
+        } 
+    });
     protocol_->Start();
+}
 
-    // Check for new firmware version or get the MQTT broker address
-    ota_.SetCheckVersionUrl(CONFIG_OTA_VERSION_URL_ZLY);
-    ota_.SetHeader("Device-Id", SystemInfo::GetMacAddress().c_str());
-    ota_.SetHeader("Client-Id", board.GetUuid());
-    ota_.SetHeader("Accept-Language", Lang::CODE);
-    auto app_desc = esp_app_get_description();
-    ota_.SetHeader("User-Agent", std::string(BOARD_NAME "/") + app_desc->version);
+void Application::CloseProtocol() {
+    protocol_->CloseAudioChannel();
+}
 
-    xTaskCreate([](void *arg)
-                {
+void Application::Start()
+{
+#if CONFIG_IDF_TARGET_ESP32S3
+    Sensor::Sensor_Init();
+#endif
+    auto &board = Board::GetInstance();
+    SetDeviceState(kDeviceStateStarting);
+
+    /* Setup the display */
+    auto display = board.GetDisplay();
+
+    /* Setup the audio codec */
+    auto codec = board.GetAudioCodec();
+    opus_decode_sample_rate_ = codec->output_sample_rate();
+    opus_decoder_ = std::make_unique<OpusDecoderWrapper>(opus_decode_sample_rate_, 1);
+    opus_encoder_ = std::make_unique<OpusEncoderWrapper>(16000, 1, OPUS_FRAME_DURATION_MS);
+    // For ML307 boards, we use complexity 5 to save bandwidth
+    // For other boards, we use complexity 3 to save CPU
+    if (board.GetBoardType() == "ml307")
+    {
+        ESP_LOGI(TAG, "ML307 board detected, setting opus encoder complexity to 5");
+        opus_encoder_->SetComplexity(5);
+    }
+    else
+    {
+        ESP_LOGI(TAG, "WiFi board detected, setting opus encoder complexity to 3");
+        opus_encoder_->SetComplexity(3);
+    }
+
+    if (codec->input_sample_rate() != 16000)
+    {
+        input_resampler_.Configure(codec->input_sample_rate(), 16000);
+        reference_resampler_.Configure(codec->input_sample_rate(), 16000);
+    }
+    codec->OnInputReady([this, codec]()
+                        {
+        BaseType_t higher_priority_task_woken = pdFALSE;
+        xEventGroupSetBitsFromISR(event_group_, AUDIO_INPUT_READY_EVENT, &higher_priority_task_woken);
+        return higher_priority_task_woken == pdTRUE; });
+    codec->OnOutputReady([this]()
+                         {
+        BaseType_t higher_priority_task_woken = pdFALSE;
+        xEventGroupSetBitsFromISR(event_group_, AUDIO_OUTPUT_READY_EVENT, &higher_priority_task_woken);
+        return higher_priority_task_woken == pdTRUE; });
+    codec->Start();
+
+    /* Start the main loop */
+    xTaskCreate([](void *arg) {
         Application* app = (Application*)arg;
-        app->CheckNewVersion();
-        vTaskDelete(NULL); }, "check_new_version", 4096 * 2, this, 2, nullptr);
+        app->MainLoop();
+        vTaskDelete(NULL); 
+    }, "main_loop", 4096 * 2, this, 4, nullptr);
 
-#if CONFIG_USE_AUDIO_PROCESSOR
-    audio_processor_.Initialize(codec->input_channels(), codec->input_reference());
-    audio_processor_.OnOutput([this](std::vector<int16_t> &&data)
-                              { background_task_->Schedule([this, data = std::move(data)]() mutable
-                                                           { opus_encoder_->Encode(std::move(data), [this](std::vector<uint8_t> &&opus)
-                                                                                   { Schedule([this, opus = std::move(opus)]()
-                                                                                              { protocol_->SendAudio(opus); }); }); }); });
-    audio_processor_.OnVadStateChange([this](bool speaking)
-                                      {
-        if (device_state_ == kDeviceStateListening) {
-            Schedule([this, speaking]() {
-                if (speaking) {
-                    voice_detected_ = true;
-                } else {
-                    voice_detected_ = false;
-                }
-                auto led = Board::GetInstance().GetLed();
-                led->OnStateChanged();
-            });
-        } });
-#endif
+    /* Wait for the network to be ready */
+    board.StartNetwork();
 
-#if CONFIG_USE_WAKE_WORD_DETECT
-    wake_word_detect_.Initialize(codec->input_channels(), codec->input_reference());
-    wake_word_detect_.OnWakeWordDetected([this](const std::string &wake_word)
-                                         { Schedule([this, &wake_word]()
-                                                    {
-            if (device_state_ == kDeviceStateIdle) {
-                SetDeviceState(kDeviceStateConnecting);
-                wake_word_detect_.EncodeWakeWordData();
+    if (board.IsConnected()) {
+        // Initialize the protocol
+        display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
+        InitProtocol();
 
-                if (!protocol_->OpenAudioChannel()) {
-                    wake_word_detect_.StartDetection();
-                    return;
-                }
-                
-                std::vector<uint8_t> opus;
-                // Encode and send the wake word data to the server
-                while (wake_word_detect_.GetWakeWordOpus(opus)) {
-                    protocol_->SendAudio(opus);
-                }
-                // Set the chat state to wake word detected
-                protocol_->SendWakeWordDetected(wake_word);
-                ESP_LOGI(TAG, "Wake word detected: %s", wake_word.c_str());
-                keep_listening_ = true;
-                SetDeviceState(kDeviceStateIdle);
-            } else if (device_state_ == kDeviceStateSpeaking) {
-                AbortSpeaking(kAbortReasonWakeWordDetected);
-            } else if (device_state_ == kDeviceStateActivating) {
-                SetDeviceState(kDeviceStateIdle);
-            } }); });
-    wake_word_detect_.StartDetection();
-#endif
+        // Check for new firmware version or get the MQTT broker address
+        // ota_.SetCheckVersionUrl(CONFIG_OTA_VERSION_URL_ZLY);
+        // ota_.SetHeader("Device-Id", SystemInfo::GetMacAddress().c_str());
+        // ota_.SetHeader("Client-Id", board.GetUuid());
+        // ota_.SetHeader("Accept-Language", Lang::CODE);
+        // auto app_desc = esp_app_get_description();
+        // ota_.SetHeader("User-Agent", std::string(BOARD_NAME "/") + app_desc->version);
+
+        // xTaskCreate([](void *arg) {
+        //     Application* app = (Application*)arg;
+        //     app->CheckNewVersion();
+        //     vTaskDelete(NULL); 
+        // }, "check_new_version", 4096 * 2, this, 2, nullptr);
+
+    #if CONFIG_USE_AUDIO_PROCESSOR
+        audio_processor_.Initialize(codec->input_channels(), codec->input_reference());
+        audio_processor_.OnOutput([this](std::vector<int16_t> &&data)
+                                { background_task_->Schedule([this, data = std::move(data)]() mutable
+                                                            { opus_encoder_->Encode(std::move(data), [this](std::vector<uint8_t> &&opus)
+                                                                                    { Schedule([this, opus = std::move(opus)]()
+                                                                                                { protocol_->SendAudio(opus); }); }); }); });
+        audio_processor_.OnVadStateChange([this](bool speaking)
+                                        {
+            if (device_state_ == kDeviceStateListening) {
+                Schedule([this, speaking]() {
+                    if (speaking) {
+                        voice_detected_ = true;
+                    } else {
+                        voice_detected_ = false;
+                    }
+                    auto led = Board::GetInstance().GetLed();
+                    led->OnStateChanged();
+                });
+            } });
+    #endif
+
+    #if CONFIG_USE_WAKE_WORD_DETECT
+        wake_word_detect_.Initialize(codec->input_channels(), codec->input_reference());
+        wake_word_detect_.OnWakeWordDetected([this](const std::string &wake_word)
+                                            { Schedule([this, &wake_word]()
+                                                        {
+                if (device_state_ == kDeviceStateIdle) {
+                    SetDeviceState(kDeviceStateConnecting);
+                    wake_word_detect_.EncodeWakeWordData();
+
+                    if (!protocol_->OpenAudioChannel()) {
+                        wake_word_detect_.StartDetection();
+                        return;
+                    }
+                    
+                    std::vector<uint8_t> opus;
+                    // Encode and send the wake word data to the server
+                    while (wake_word_detect_.GetWakeWordOpus(opus)) {
+                        protocol_->SendAudio(opus);
+                    }
+                    // Set the chat state to wake word detected
+                    protocol_->SendWakeWordDetected(wake_word);
+                    ESP_LOGI(TAG, "Wake word detected: %s", wake_word.c_str());
+                    keep_listening_ = true;
+                    SetDeviceState(kDeviceStateIdle);
+                } else if (device_state_ == kDeviceStateSpeaking) {
+                    AbortSpeaking(kAbortReasonWakeWordDetected);
+                } else if (device_state_ == kDeviceStateActivating) {
+                    SetDeviceState(kDeviceStateIdle);
+                } }); });
+        wake_word_detect_.StartDetection();
+    #endif
+    };
 
     SetDeviceState(kDeviceStateIdle);
     esp_timer_start_periodic(clock_timer_handle_, 1000000);
@@ -792,10 +806,11 @@ void Application::InputAudio()
 #else
     if (device_state_ == kDeviceStateListening)
     {
-        background_task_->Schedule([this, data = std::move(data)]() mutable
-                                   { opus_encoder_->Encode(std::move(data), [this](std::vector<uint8_t> &&opus)
-                                                           { Schedule([this, opus = std::move(opus)]()
-                                                                      { protocol_->SendAudio(opus); }); }); });
+        background_task_->Schedule([this, data = std::move(data)]() mutable {
+            opus_encoder_->Encode(std::move(data), [this](std::vector<uint8_t> &&opus) { 
+                Schedule([this, opus = std::move(opus)]() { protocol_->SendAudio(opus); }); 
+            }); 
+        });
     }
 #endif
 }

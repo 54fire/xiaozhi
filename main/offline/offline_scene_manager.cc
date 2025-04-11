@@ -4,13 +4,20 @@
 #include "fxq_offline.h"
 #include "online.h"
 #include <iostream>
+#include <esp_log.h>
 #include "application.h"
+
+#define TAG "OfflineSceneManager"
+
 // 单例实例
 OfflineSceneManager* OfflineSceneManager::instance_ = nullptr;
 std::mutex OfflineSceneManager::mutex_;
 
 OfflineSceneManager::OfflineSceneManager() : current_player_(nullptr)
 {
+    // 注册文件分区
+    MountFs();
+
     // 注册所有场景
     registered_scenes_["fxq"] = std::make_unique<FxqOfflinePlayer>();
     registered_scenes_["fns"] = std::make_unique<FnsOfflinePlayer>();
@@ -38,6 +45,22 @@ OfflineSceneManager* OfflineSceneManager::getInstance()
         }
     }
     return instance_;
+}
+
+void OfflineSceneManager::MountFs()
+{
+    const mmap_assets_config_t config_offinline_audio = {
+        .partition_label = "offline_audio",
+        .max_files = MMAP_OFFLINE_AUDIO_FILES,
+        .checksum = MMAP_OFFLINE_AUDIO_CHECKSUM,
+        .flags = {
+            .mmap_enable = true,
+            .app_bin_check = true,
+        },
+    };
+
+    mmap_assets_new(&config_offinline_audio, &asset_offline_audio);
+    ESP_LOGI(TAG, "[%s]stored_files:%d", config_offinline_audio.partition_label, mmap_assets_get_stored_files(asset_offline_audio));
 }
 
 void OfflineSceneManager::switchToNextScene() {
@@ -68,25 +91,35 @@ void OfflineSceneManager::resetCurrentPlayer()
     }
 }
 
-std::string_view OfflineSceneManager::getNextSound()
+int OfflineSceneManager::getNextSound()
 {
     return current_player_->getNextSound();
 }
 
 void OfflineSceneManager::playNextSound()
 {
-    auto &app = Application::GetInstance();
-     app.PlaySound(current_player_->getNextSound());
+    int offline_audio_enum = current_player_->getNextSound();
+    const uint8_t* data = mmap_assets_get_mem(asset_offline_audio, offline_audio_enum);
+    size_t size = mmap_assets_get_size(asset_offline_audio, MMAP_OFFLINE_AUDIO_NS1_P3);
+    const std::string_view sound(reinterpret_cast<const char*>(data), size);
+    Play(sound);
 }
 
 void OfflineSceneManager::playPrevSound()
 {
-    auto &app = Application::GetInstance();
-     app.PlaySound(current_player_->getPrevSound());
+    int offline_audio_enum = current_player_->getPrevSound();
+    const uint8_t* data = mmap_assets_get_mem(asset_offline_audio, offline_audio_enum);
+    size_t size = mmap_assets_get_size(asset_offline_audio, MMAP_OFFLINE_AUDIO_NS1_P3);
+    const std::string_view sound(reinterpret_cast<const char*>(data), size);
+    Play(sound);
 }
 
+void OfflineSceneManager::Play(const std::string_view &sound) {
+    auto &app = Application::GetInstance();
+    app.PlaySound(sound);
+}
 
 bool OfflineSceneManager::isOnlineScene() const
 {
-    return scene_names_[current_scene_index_] == "online";
+    return getCurrentSceneName() == "online";
 }

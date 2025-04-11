@@ -130,6 +130,8 @@ void WifiBoard::EndNetwork() {
     } 
 }
 
+bool WifiBoard::IsConnected() { return WifiStation::GetInstance().IsConnected(); }
+
 Http* WifiBoard::CreateHttp() {
     return new EspHttp();
 }

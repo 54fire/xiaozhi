@@ -164,19 +164,12 @@ if(CONFIG_USE_WAKE_WORD_DETECT)
 endif()
 
 # 根据Kconfig选择语言目录
-if(CONFIG_LAN_XIAOHONGMEI)
-    set(LANG_DIR "xiaohongmei")
-    list(APPEND SOURCES 
-    "offline/offline_base.cc"
-    "offline/fns_offline.cc"
-    "offline/fql_offline.cc"
-    "offline/fxq_offline.cc"
-    "offline/online.cc"
-    "offline/offline_scene_manager.cc"
-    )
-
-elseif(CONFIG_LAN_XIAOHUOGUO)
-    set(LANG_DIR "xiaohuoguo")
+if(CONFIG_LAN_XIAOHONGMEI OR CONFIG_LAN_XIAOHUOGUO)
+    if(CONFIG_LAN_XIAOHONGMEI)
+        set(LANG_DIR "xiaohongmei")
+    elseif(CONFIG_LAN_XIAOHUOGUO)
+        set(LANG_DIR "xiaohuoguo")
+    endif()
     list(APPEND SOURCES 
     "offline/offline_base.cc"
     "offline/fns_offline.cc"
@@ -214,6 +207,13 @@ idf_component_register(SRCS ${SOURCES}
                     INCLUDE_DIRS ${INCLUDE_DIRS}
                     WHOLE_ARCHIVE
                     )
+
+spiffs_create_partition_assets(
+    offline_audio
+    "./assets/offline_audio/${LANG_DIR}"
+    FLASH_IN_PROJECT
+    MMAP_FILE_SUPPORT_FORMAT ".p3"
+)
 
 # 使用 target_compile_definitions 来定义 BOARD_TYPE, BOARD_NAME
 # 如果 BOARD_NAME 为空，则使用 BOARD_TYPE

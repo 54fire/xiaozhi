@@ -7,6 +7,7 @@
 #include <array>
 #include "offline_base.h"
 #include <mutex>
+#include "mmap_generate_offline_audio.h"
 
 class OfflineSceneManager
 {
@@ -15,6 +16,7 @@ private:
     std::array<std::string, 4> scene_names_ = {"fxq", "fns", "fql", "online"};
     size_t current_scene_index_ = 3;
     OfflineBase *current_player_;
+    mmap_assets_handle_t asset_offline_audio;
 
     // 单例相关成员
     static OfflineSceneManager *instance_;
@@ -23,6 +25,11 @@ private:
     // 私有构造函数和析构函数
     OfflineSceneManager();
     ~OfflineSceneManager();
+
+    // 注册音频文件
+    void MountFs();
+    // 播放音频文件
+    void Play(const std::string_view &sound);
 
 public:
     // 禁止拷贝构造和赋值
@@ -42,7 +49,7 @@ public:
     std::string getCurrentSceneName() const;
 
     // 获取下一个音频资源
-    std::string_view getNextSound();
+    int getNextSound();
     // 播放下一个音频资源
     void playNextSound();
     // 播放上一个音频资源

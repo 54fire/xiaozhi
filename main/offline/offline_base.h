@@ -12,15 +12,15 @@ protected:
     size_t current_index_ = 0;
 
     // 子类必须实现此函数来提供自己的音频资源
-     virtual const std::vector<std::string_view>& getSounds() const = 0;
+    virtual const std::vector<int>& getSounds() const = 0;
 
 public:
     virtual ~OfflineBase() = default;
 
     // 获取下一个音频资源
-    std::string_view getNextSound();
-
-    std::string_view getPrevSound();
+    int getNextSound();
+    // 获取上一个音频资源
+    int getPrevSound();
 
     virtual const std::string_view getHelloSound() const = 0; 
     

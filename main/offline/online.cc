@@ -1,9 +1,8 @@
 #include "online.h"
 
-OnlineOfflinePlayer::OnlineOfflinePlayer()
-    : ONLINE_SOUNDS({}) {} // 提供一个空的音频资源数组
+OnlineOfflinePlayer::OnlineOfflinePlayer() : ONLINE_SOUNDS({}) {} // 提供一个空的音频资源数组
 
-const std::vector<std::string_view>& OnlineOfflinePlayer::getSounds() const {
+const std::vector<int>& OnlineOfflinePlayer::getSounds() const {
     return ONLINE_SOUNDS;
 }
 
