@@ -79,6 +79,8 @@ public:
     bool CanEnterSleepMode();
     void ClearAudioCache();
     void ResetAudioDecoder();
+    void InitProtocol();
+    void CloseProtocol();
 
 private:
     Application();

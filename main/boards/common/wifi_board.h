@@ -16,7 +16,7 @@ public:
     virtual std::string GetBoardType() override;
     virtual void StartNetwork() override;
     virtual void EndNetwork() override;
-    virtual inline bool StatusNetwork() override { return wifi_config_mode_; };
+    virtual bool IsConnected() override;
     virtual Http* CreateHttp() override;
     virtual WebSocket* CreateWebSocket() override;
     virtual Mqtt* CreateMqtt() override;

@@ -51,7 +51,7 @@ public:
     virtual Udp* CreateUdp() = 0;
     virtual void StartNetwork() = 0;
     virtual void EndNetwork() = 0;
-    virtual bool StatusNetwork() = 0;
+    virtual bool IsConnected() = 0;
     virtual const char* GetNetworkStateIcon() = 0;
     virtual bool GetBatteryLevel(int &level, bool& charging, bool& discharging);
     virtual std::string GetJson();

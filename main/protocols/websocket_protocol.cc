@@ -114,6 +114,12 @@ bool WebsocketProtocol::OpenAudioChannel() {
     message += "\"version\": 1,";
     #ifdef CONFIG_BOARD_TYPE_XMINI_C3
     message += "\"welcome\":\"true\",";
+    #endif
+    #ifdef CONFIG_LAN_XIAOHONGMEI
+    message += "\"role\":\"xiaohongmei\",";
+    #elif CONFIG_LAN_XIAOHUOGUO
+    message += "\"role\":\"xiaohuoguo\",";
+    #else
     message += "\"role\":\"xiaohongmei\",";
     #endif
     message += "\"transport\":\"websocket\",";
