@@ -1,6 +1,5 @@
 #include "wifi_board.h"
 #include "audio_codecs/no_audio_codec.h"
-#include "display/ssd1306_display.h"
 #include "system_reset.h"
 #include "application.h"
 #include "button.h"
@@ -14,8 +13,6 @@
 
 #define TAG "CompactWifiBoard"
 
-LV_FONT_DECLARE(font_puhui_14_1);
-LV_FONT_DECLARE(font_awesome_14_1);
 
 class CompactWifiBoard : public WifiBoard {
 private:

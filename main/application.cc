@@ -10,6 +10,10 @@
 #include "iot/thing_manager.h"
 #include "assets/lang_config.h"
 
+#if CONFIG_IDF_TARGET_ESP32S3
+#include "sensors/sensor.h"
+#endif
+
 #include <cstring>
 #include <esp_log.h>
 #include <cJSON.h>
