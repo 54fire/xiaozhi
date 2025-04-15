@@ -14,7 +14,7 @@
 #include "esp_mmap_assets.h"
 
 #define MMAP_XIAOHUOGUO_FILES           441
-#define MMAP_XIAOHUOGUO_CHECKSUM        0x688E
+#define MMAP_XIAOHUOGUO_CHECKSUM        0x54E8
 
 enum MMAP_XIAOHUOGUO_LISTS {
     MMAP_XIAOHUOGUO_NS1_P3 = 0,        /*!< ns1.p3 */

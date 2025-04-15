@@ -51,8 +51,15 @@ void OfflineSceneManager::MountFs()
 {
     const mmap_assets_config_t config_offinline_audio = {
         .partition_label = "offline_audio",
-        .max_files = MMAP_OFFLINE_AUDIO_FILES,
-        .checksum = MMAP_OFFLINE_AUDIO_CHECKSUM,
+        // .max_files = MMAP_OFFLINE_AUDIO_FILES,
+        // .checksum = MMAP_OFFLINE_AUDIO_CHECKSUM,
+#if CONFIG_LAN_XIAOHONGMEI
+        .max_files = MMAP_XIAOHONGMEI_FILES,
+        .checksum = MMAP_XIAOHONGMEI_CHECKSUM,
+#elif CONFIG_LAN_XIAOHUOGUO
+        .max_files = MMAP_XIAOHUOGUO_FILES,
+        .checksum = MMAP_XIAOHUOGUO_CHECKSUM,
+#endif
         .flags = {
             .mmap_enable = true,
             .app_bin_check = true,
@@ -100,7 +107,7 @@ void OfflineSceneManager::playNextSound()
 {
     int offline_audio_enum = current_player_->getNextSound();
     const uint8_t* data = mmap_assets_get_mem(asset_offline_audio, offline_audio_enum);
-    size_t size = mmap_assets_get_size(asset_offline_audio, MMAP_OFFLINE_AUDIO_NS1_P3);
+    size_t size = mmap_assets_get_size(asset_offline_audio, offline_audio_enum);
     const std::string_view sound(reinterpret_cast<const char*>(data), size);
     Play(sound);
 }
@@ -109,7 +116,7 @@ void OfflineSceneManager::playPrevSound()
 {
     int offline_audio_enum = current_player_->getPrevSound();
     const uint8_t* data = mmap_assets_get_mem(asset_offline_audio, offline_audio_enum);
-    size_t size = mmap_assets_get_size(asset_offline_audio, MMAP_OFFLINE_AUDIO_NS1_P3);
+    size_t size = mmap_assets_get_size(asset_offline_audio, offline_audio_enum);
     const std::string_view sound(reinterpret_cast<const char*>(data), size);
     Play(sound);
 }

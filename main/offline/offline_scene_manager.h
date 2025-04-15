@@ -7,7 +7,12 @@
 #include <array>
 #include "offline_base.h"
 #include <mutex>
-#include "mmap_generate_offline_audio.h"
+
+#if CONFIG_LAN_XIAOHONGMEI
+#include "mmap_generate_xiaohongmei.h"
+#elif CONFIG_LAN_XIAOHUOGUO
+#include "mmap_generate_xiaohuoguo.h"
+#endif
 
 class OfflineSceneManager
 {
