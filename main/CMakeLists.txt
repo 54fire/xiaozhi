@@ -208,12 +208,14 @@ idf_component_register(SRCS ${SOURCES}
                     WHOLE_ARCHIVE
                     )
 
+if(CONFIG_LAN_XIAOHONGMEI OR CONFIG_LAN_XIAOHUOGUO)
 spiffs_create_partition_assets(
     offline_audio
     "./assets/offline_audio/${LANG_DIR}"
     FLASH_IN_PROJECT
     MMAP_FILE_SUPPORT_FORMAT ".p3"
 )
+endif()
 
 # 使用 target_compile_definitions 来定义 BOARD_TYPE, BOARD_NAME
 # 如果 BOARD_NAME 为空，则使用 BOARD_TYPE

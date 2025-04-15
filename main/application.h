@@ -18,7 +18,9 @@
 #include "protocol.h"
 #include "ota.h"
 #include "background_task.h"
+#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
 #include "offline_scene_manager.h"
+#endif
 
 #if CONFIG_USE_WAKE_WORD_DETECT
 #include "wake_word_detect.h"

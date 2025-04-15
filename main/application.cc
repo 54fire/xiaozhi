@@ -379,7 +379,9 @@ void Application::InitProtocol() {
         Alert(Lang::Strings::ERROR, message.c_str(), "sad", Lang::Sounds::P3_EXCLAMATION); 
     });
     protocol_->OnIncomingAudio([this](std::vector<uint8_t> &&data) {
+        #if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
         if (!OfflineSceneManager::getInstance()->isOnlineScene()) return;
+        #endif
         std::lock_guard<std::mutex> lock(mutex_);
         if (device_state_ == kDeviceStateSpeaking) {
             audio_decode_queue_.emplace_back(std::move(data));
@@ -408,8 +410,9 @@ void Application::InitProtocol() {
         }); 
     });
     protocol_->OnIncomingJson([this, display](const cJSON *root) {
-        bool is_online_ = OfflineSceneManager::getInstance()->isOnlineScene();
-        if (!is_online_) { return; }
+        #if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
+        if (!OfflineSceneManager::getInstance()->isOnlineScene()) { return; }
+        #endif
         // Parse JSON data
         auto type = cJSON_GetObjectItem(root, "type");
         if (strcmp(type->valuestring, "tts") == 0) {
@@ -658,7 +661,12 @@ void Application::MainLoop()
                                         SCHEDULE_EVENT | AUDIO_INPUT_READY_EVENT | AUDIO_OUTPUT_READY_EVENT,
                                         pdTRUE, pdFALSE, portMAX_DELAY);
 
-        if (OfflineSceneManager::getInstance()->isOnlineScene() && (bits & AUDIO_INPUT_READY_EVENT))
+        if (
+            #if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
+            OfflineSceneManager::getInstance()->isOnlineScene() && 
+            #endif
+            (bits & AUDIO_INPUT_READY_EVENT)
+        )
         {
             InputAudio();
         }
@@ -697,8 +705,10 @@ void Application::OutputAudio()
     {
         // Disable the output if there is no audio data for a long time
         if (
-            device_state_ == kDeviceStateIdle || 
-            (!OfflineSceneManager::getInstance()->isOnlineScene() && device_state_ == kDeviceStateSpeaking)
+            device_state_ == kDeviceStateIdle
+            #if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
+            || (!OfflineSceneManager::getInstance()->isOnlineScene() && device_state_ == kDeviceStateSpeaking)
+            #endif
         )
         {
             auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - last_output_time_).count();
