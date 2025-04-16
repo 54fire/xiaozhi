@@ -161,6 +161,13 @@ choice BOARD_TYPE
         bool "SenseCAP Watcher"
 endchoice
 
+config COMMAND_WAKE_WORD
+    depends on BOARD_TYPE_HUG_BEAT_WIFI || BOARD_TYPE_HUG_BEAT_4G
+    string "指令唤醒词"
+    default ""
+    help
+        指令唤醒词
+
 choice DISPLAY_OLED_TYPE
     depends on BOARD_TYPE_BREAD_COMPACT_WIFI || BOARD_TYPE_BREAD_COMPACT_ML307 || BOARD_TYPE_BREAD_COMPACT_ESP32
     prompt "OLED Type"

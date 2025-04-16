@@ -16,6 +16,9 @@
 #include <condition_variable>
 #include "command_recognition.h"
 #include "esp_mn_iface.h"
+#include "esp_mn_models.h"
+
+#include "audio_codec.h"
 
 #define TIAN_XIAO_MEI "tian xiao mei"
 #define TIAN_XIAO_MEI_CODE 1
@@ -23,7 +26,7 @@
 #define TIAN_XIAO_HU_CODE 2
 #define XIAO_YU_XIAO_YU "xiao yu xiao yu"
 #define XIAO_YU_XIAO_YU_CODE 3
-#define USE_COMMAND_WAKE true
+#define USE_COMMAND_WAKE 1
 #define WAKE_COMMAND XIAO_YU_XIAO_YU
 #define WAKE_NAME "你好，小语"
 
@@ -33,12 +36,13 @@ public:
     WakeWordDetect();
     ~WakeWordDetect();
 
-    void Initialize(int channels, bool reference);
+    void Initialize(AudioCodec* codec);
     void Feed(const std::vector<int16_t> &data);
     void OnWakeWordDetected(std::function<void(const std::string &wake_word)> callback);
     void StartDetection();
     void StopDetection();
     bool IsDetectionRunning();
+    size_t GetFeedSize();
     void EncodeWakeWordData();
     bool GetWakeWordOpus(std::vector<uint8_t> &opus);
     const std::string &GetLastDetectedWakeWord() const { return last_detected_wake_word_; }
@@ -58,6 +62,7 @@ private:
     int channels_;
     bool reference_;
     std::string last_detected_wake_word_;
+    AudioCodec* codec_ = nullptr;
 
     TaskHandle_t wake_word_encode_task_ = nullptr;
     StaticTask_t wake_word_encode_task_buffer_;

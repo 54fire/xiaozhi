@@ -133,6 +133,7 @@ private:
     void MainLoop();
     void InputAudio();
     void OutputAudio();
+    void ReadAudio(std::vector<int16_t>& data, int sample_rate, int samples);
     void ResetDecoder();
     void SetDecodeSampleRate(int sample_rate);
     void CheckNewVersion();

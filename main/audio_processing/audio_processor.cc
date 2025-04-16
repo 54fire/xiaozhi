@@ -71,6 +71,7 @@ void AudioProcessor::Start() {
 
 void AudioProcessor::Stop() {
     xEventGroupClearBits(event_group_, PROCESSOR_RUNNING);
+    if (afe_iface_ == nullptr) return;
     afe_iface_->reset_buffer(afe_data_);
 }
 

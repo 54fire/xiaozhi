@@ -15,6 +15,18 @@
 
 static const char *TAG = "WakeWordDetect";
 
+static std::string trim_st(const std::string& str) {
+    // 去除前导空格
+    size_t first = str.find_first_not_of(" \t\n\r\f\v");
+    if (first == std::string::npos) {
+        return ""; // 字符串全是空格
+    }
+
+    // 去除尾部空格
+    size_t last = str.find_last_not_of(" \t\n\r\f\v");
+    return str.substr(first, (last - first + 1));
+}
+
 WakeWordDetect::WakeWordDetect()
     : afe_data_(nullptr),
       wake_word_pcm_(),
@@ -39,25 +51,23 @@ WakeWordDetect::~WakeWordDetect()
     vEventGroupDelete(event_group_);
 }
 
-void WakeWordDetect::Initialize(int channels, bool reference)
+void WakeWordDetect::Initialize(AudioCodec* codec)
 {
-    channels_ = channels;
-    reference_ = reference;
+    codec_ = codec;
+    channels_ = codec_->input_channels();
+    reference_ = codec_->input_reference();
     int ref_num = reference_ ? 1 : 0;
 
     srmodel_list_t *models = esp_srmodel_init("model");
-    for (int i = 0; i < models->num; i++)
-    {
+    for (int i = 0; i < models->num; i++) {
         ESP_LOGI(TAG, "Model %d: %s", i, models->model_name[i]);
-        if (strstr(models->model_name[i], ESP_WN_PREFIX) != NULL)
-        {
+        if (strstr(models->model_name[i], ESP_WN_PREFIX) != NULL) {
             wakenet_model_ = models->model_name[i];
             auto words = esp_srmodel_get_wake_words(models, wakenet_model_);
             // split by ";" to get all wake words
             std::stringstream ss(words);
             std::string word;
-            while (std::getline(ss, word, ';'))
-            {
+            while (std::getline(ss, word, ';')) {
                 wake_words_.push_back(word);
             }
         }
@@ -65,12 +75,6 @@ void WakeWordDetect::Initialize(int channels, bool reference)
         {
             multinet_model_name_ = models->model_name[i];
         }
-    }
-
-    if (multinet_model_name_.empty())
-    {
-        ESP_LOGE(TAG, "No valid MultiNet model found!");
-        return;
     }
 
     std::string input_format;
@@ -90,8 +94,35 @@ void WakeWordDetect::Initialize(int channels, bool reference)
     afe_iface_ = esp_afe_handle_from_config(afe_config);
     afe_data_ = afe_iface_->create_from_config(afe_config);
 
-    xTaskCreate([](void *arg)
-                {
+#if USE_COMMAND_WAKE
+    if (!multinet_model_name_.empty())
+    {
+        multinet_ = esp_mn_handle_from_name(const_cast<char *>(multinet_model_name_.c_str()));
+        model_data_ = multinet_->create(const_cast<char *>(multinet_model_name_.c_str()), 16000);
+        wake_words_.clear();
+        esp_mn_commands_clear();
+
+        // command wake word
+        if (CONFIG_COMMAND_WAKE_WORD != nullptr && strlen(CONFIG_COMMAND_WAKE_WORD) != 0) {
+            std::stringstream ss(CONFIG_COMMAND_WAKE_WORD);
+            std::string word;
+            while (std::getline(ss, word, ';')) {
+                wake_words_.push_back(trim_st(word));
+            }
+            for (size_t i = 0; i < wake_words_.size(); ++i) {
+                ESP_LOGI(TAG, "i: %d data: %s", i, wake_words_[i].data());
+                esp_mn_commands_add(i + 1, wake_words_[i].data());
+            }        
+            esp_mn_commands_update();
+        }
+        multinet_->print_active_speech_commands(model_data_);
+    } 
+    else {
+        ESP_LOGE(TAG, "No valid MultiNet model found!");
+    }
+#endif
+
+    xTaskCreate([](void *arg) {
         auto this_ = (WakeWordDetect*)arg;
         this_->AudioDetectionTask();
         vTaskDelete(NULL);
@@ -103,20 +134,18 @@ void WakeWordDetect::OnWakeWordDetected(std::function<void(const std::string &wa
     wake_word_detected_callback_ = callback;
 }
 
-void WakeWordDetect::OnVadStateChange(std::function<void(bool speaking)> callback)
-{
-    vad_state_change_callback_ = callback;
-}
-
 void WakeWordDetect::StartDetection()
 {
+    ESP_LOGI(TAG, "StartDetection");
     xEventGroupSetBits(event_group_, DETECTION_RUNNING_EVENT);
 }
 
 void WakeWordDetect::StopDetection()
 {
     xEventGroupClearBits(event_group_, DETECTION_RUNNING_EVENT);
-    afe_iface_->reset_buffer(afe_data_);
+    if (afe_data_ != nullptr) {
+        afe_iface_->reset_buffer(afe_data_);
+    }
 }
 
 bool WakeWordDetect::IsDetectionRunning()
@@ -124,18 +153,19 @@ bool WakeWordDetect::IsDetectionRunning()
     return xEventGroupGetBits(event_group_) & DETECTION_RUNNING_EVENT;
 }
 
-void WakeWordDetect::Feed(const std::vector<int16_t> &data)
-{
-    input_buffer_.insert(input_buffer_.end(), data.begin(), data.end());
-
-    auto feed_size = afe_iface_->get_feed_chunksize(afe_data_) * channels_;
-    while (input_buffer_.size() >= feed_size) {
-        afe_iface_->feed(afe_data_, input_buffer_.data());
-        input_buffer_.erase(input_buffer_.begin(), input_buffer_.begin() + feed_size);
+void WakeWordDetect::Feed(const std::vector<int16_t>& data) {
+    if (afe_data_ == nullptr) {
+        return;
     }
+    afe_iface_->feed(afe_data_, data.data());
 }
 
-
+size_t WakeWordDetect::GetFeedSize() {
+    if (afe_data_ == nullptr) {
+        return 0;
+    }
+    return afe_iface_->get_feed_chunksize(afe_data_) * codec_->input_channels();
+}
 
 // 函数：去除字符串前后的空格
 void WakeWordDetect::trim(char* str) {
@@ -161,93 +191,51 @@ void WakeWordDetect::trim(char* str) {
     }
 }
 
-void WakeWordDetect::AudioDetectionTask()
-{
-    auto fetch_size = esp_afe_sr_v1.get_fetch_chunksize(afe_detection_data_);
-    auto feed_size = esp_afe_sr_v1.get_feed_chunksize(afe_detection_data_);
 void WakeWordDetect::AudioDetectionTask() {
     auto fetch_size = afe_iface_->get_fetch_chunksize(afe_data_);
     auto feed_size = afe_iface_->get_feed_chunksize(afe_data_);
-    ESP_LOGI(TAG, "Audio detection task started, feed size: %d fetch size: %d",
-             feed_size, fetch_size);
-
-    while (true)
-    {
+    ESP_LOGI(TAG, "Audio detection task started, feed size: %d fetch size: %d", feed_size, fetch_size);
+    while (true) {
         xEventGroupWaitBits(event_group_, DETECTION_RUNNING_EVENT, pdFALSE, pdTRUE, portMAX_DELAY);
 
         auto res = afe_iface_->fetch_with_delay(afe_data_, portMAX_DELAY);
         if (res == nullptr || res->ret_value == ESP_FAIL) {
-            continue;;
-        auto res = esp_afe_sr_v1.fetch(afe_detection_data_);
-        if (res == nullptr || res->ret_value == ESP_FAIL)
-        {
-            if (res != nullptr)
-            {
-                ESP_LOGI(TAG, "Error code: %d", res->ret_value);
-            }
             continue;
-            ;
         }
 
         // Store the wake word data for voice recognition, like who is speaking
-        StoreWakeWordData((uint16_t *)res->data, res->data_size / sizeof(uint16_t));
+        StoreWakeWordData((uint16_t*)res->data, res->data_size / sizeof(uint16_t));
 
-        // VAD state change
-        if (vad_state_change_callback_)
-        {
-            if (res->vad_state == AFE_VAD_SPEECH && !is_speaking_)
-            {
-                is_speaking_ = true;
-                vad_state_change_callback_(true);
-            }
-            else if (res->vad_state == AFE_VAD_SILENCE && is_speaking_)
-            {
-                is_speaking_ = false;
-                vad_state_change_callback_(false);
+#if !USE_COMMAND_WAKE
+        if (res->wakeup_state == WAKENET_DETECTED) {
+            StopDetection();
+            last_detected_wake_word_ = wake_words_[res->wake_word_index - 1];
+
+            if (wake_word_detected_callback_) {
+                wake_word_detected_callback_(last_detected_wake_word_);
             }
         }
-        if (!USE_COMMAND_WAKE)
+#else
+        esp_mn_state_t mn_state = multinet_->detect(model_data_, res->data);
+        if (mn_state == ESP_MN_STATE_DETECTED)
         {
-
-            if (res->wakeup_state == WAKENET_DETECTED)
+            esp_mn_results_t *mn_result = multinet_->get_results(model_data_);
+            for (int i = 0; i < mn_result->num; i++)
             {
+                ESP_LOGI(TAG, "Detected command: '%s', Probability: %.2f,num:%d ", mn_result->string, mn_result->prob[i],mn_result->num);
                 StopDetection();
-                last_detected_wake_word_ = wake_words_[res->wake_word_index - 1];
-
+#if CONFIG_COMMAND_WAKE_NAME
+                last_detected_wake_word_ = CONFIG_COMMAND_WAKE_NAME;
+#else
+                last_detected_wake_word_ = mn_result->string;
+#endif
                 if (wake_word_detected_callback_)
                 {
                     wake_word_detected_callback_(last_detected_wake_word_);
                 }
             }
         }
-        else
-        {
-            // Command detection
-            esp_mn_state_t mn_state = multinet_->detect(model_data_, res->data);
-            if (mn_state == ESP_MN_STATE_DETECTED)
-            {
-                esp_mn_results_t *mn_result = multinet_->get_results(model_data_);
-                for (int i = 0; i < mn_result->num; i++)
-                {
-                    ESP_LOGI(TAG, "Detected command: '%s'\n, Probability: %.2f,num:%d ",
-                             mn_result->string, mn_result->prob[i],mn_result->num);
-                    if (command_detected_callback_)
-                    {
-                        command_detected_callback_(mn_result->string);
-                    }
-                    trim(mn_result->string);
-                    if (strcmp(mn_result->string, WAKE_COMMAND) == 0)
-                    {
-                        StopDetection();
-                        last_detected_wake_word_ = WAKE_NAME;
-                        if (wake_word_detected_callback_)
-                        {
-                            wake_word_detected_callback_(last_detected_wake_word_);
-                        }
-                    }
-                }
-            }
-        }
+#endif
     }
 }
 
@@ -269,8 +257,7 @@ void WakeWordDetect::EncodeWakeWordData()
     {
         wake_word_encode_task_stack_ = (StackType_t *)heap_caps_malloc(4096 * 8, MALLOC_CAP_SPIRAM);
     }
-    wake_word_encode_task_ = xTaskCreateStatic([](void *arg)
-                                               {
+    wake_word_encode_task_ = xTaskCreateStatic([](void *arg) {
         auto this_ = (WakeWordDetect*)arg;
         {
             auto start_time = esp_timer_get_time();
@@ -294,7 +281,8 @@ void WakeWordDetect::EncodeWakeWordData()
             this_->wake_word_opus_.push_back(std::vector<uint8_t>());
             this_->wake_word_cv_.notify_all();
         }
-        vTaskDelete(NULL); }, "encode_detect_packets", 4096 * 8, this, 1, wake_word_encode_task_stack_, &wake_word_encode_task_buffer_);
+        vTaskDelete(NULL); 
+    }, "encode_detect_packets", 4096 * 8, this, 1, wake_word_encode_task_stack_, &wake_word_encode_task_buffer_);
 }
 
 bool WakeWordDetect::GetWakeWordOpus(std::vector<uint8_t> &opus)

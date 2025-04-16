@@ -555,13 +555,14 @@ void Application::Start()
 
     #if CONFIG_USE_AUDIO_PROCESSOR
         audio_processor_.Initialize(codec->input_channels(), codec->input_reference());
-        audio_processor_.OnOutput([this](std::vector<int16_t> &&data)
-                                { background_task_->Schedule([this, data = std::move(data)]() mutable
-                                                            { opus_encoder_->Encode(std::move(data), [this](std::vector<uint8_t> &&opus)
-                                                                                    { Schedule([this, opus = std::move(opus)]()
-                                                                                                { protocol_->SendAudio(opus); }); }); }); });
-        audio_processor_.OnVadStateChange([this](bool speaking)
-                                        {
+        audio_processor_.OnOutput([this](std::vector<int16_t> &&data) {
+            background_task_->Schedule([this, data = std::move(data)]() mutable { 
+                opus_encoder_->Encode(std::move(data), [this](std::vector<uint8_t> &&opus) {
+                    Schedule([this, opus = std::move(opus)]() { protocol_->SendAudio(opus); }); 
+                }); 
+            });
+        });
+        audio_processor_.OnVadStateChange([this](bool speaking) {
             if (device_state_ == kDeviceStateListening) {
                 Schedule([this, speaking]() {
                     if (speaking) {
@@ -572,14 +573,14 @@ void Application::Start()
                     auto led = Board::GetInstance().GetLed();
                     led->OnStateChanged();
                 });
-            } });
+            } 
+        });
     #endif
 
     #if CONFIG_USE_WAKE_WORD_DETECT
-        wake_word_detect_.Initialize(codec->input_channels(), codec->input_reference());
-        wake_word_detect_.OnWakeWordDetected([this](const std::string &wake_word)
-                                            { Schedule([this, &wake_word]()
-                                                        {
+        wake_word_detect_.Initialize(codec);
+        wake_word_detect_.OnWakeWordDetected([this](const std::string &wake_word) { 
+            Schedule([this, &wake_word]() {
                 if (device_state_ == kDeviceStateIdle) {
                     SetDeviceState(kDeviceStateConnecting);
                     wake_word_detect_.EncodeWakeWordData();
@@ -603,7 +604,9 @@ void Application::Start()
                     AbortSpeaking(kAbortReasonWakeWordDetected);
                 } else if (device_state_ == kDeviceStateActivating) {
                     SetDeviceState(kDeviceStateIdle);
-                } }); });
+                } 
+            }); 
+        });
         wake_word_detect_.StartDetection();
     #endif
     };
@@ -809,7 +812,11 @@ void Application::InputAudio()
 #if CONFIG_USE_WAKE_WORD_DETECT
     if (wake_word_detect_.IsDetectionRunning())
     {
-        wake_word_detect_.Feed(data);
+        int samples = wake_word_detect_.GetFeedSize();
+        if (samples > 0) {
+            wake_word_detect_.Feed(data);
+            return;
+        }
     }
 #endif
 #if CONFIG_USE_AUDIO_PROCESSOR
@@ -827,6 +834,42 @@ void Application::InputAudio()
         });
     }
 #endif
+}
+
+void Application::ReadAudio(std::vector<int16_t>& data, int sample_rate, int samples) {
+    auto codec = Board::GetInstance().GetAudioCodec();
+    if (codec->input_sample_rate() != sample_rate) {
+        data.resize(samples * codec->input_sample_rate() / sample_rate);
+        if (!codec->InputData(data)) {
+            return;
+        }
+        if (codec->input_channels() == 2) {
+            auto mic_channel = std::vector<int16_t>(data.size() / 2);
+            auto reference_channel = std::vector<int16_t>(data.size() / 2);
+            for (size_t i = 0, j = 0; i < mic_channel.size(); ++i, j += 2) {
+                mic_channel[i] = data[j];
+                reference_channel[i] = data[j + 1];
+            }
+            auto resampled_mic = std::vector<int16_t>(input_resampler_.GetOutputSamples(mic_channel.size()));
+            auto resampled_reference = std::vector<int16_t>(reference_resampler_.GetOutputSamples(reference_channel.size()));
+            input_resampler_.Process(mic_channel.data(), mic_channel.size(), resampled_mic.data());
+            reference_resampler_.Process(reference_channel.data(), reference_channel.size(), resampled_reference.data());
+            data.resize(resampled_mic.size() + resampled_reference.size());
+            for (size_t i = 0, j = 0; i < resampled_mic.size(); ++i, j += 2) {
+                data[j] = resampled_mic[i];
+                data[j + 1] = resampled_reference[i];
+            }
+        } else {
+            auto resampled = std::vector<int16_t>(input_resampler_.GetOutputSamples(data.size()));
+            input_resampler_.Process(data.data(), data.size(), resampled.data());
+            data = std::move(resampled);
+        }
+    } else {
+        data.resize(samples);
+        if (!codec->InputData(data)) {
+            return;
+        }
+    }
 }
 
 void Application::AbortSpeaking(AbortReason reason)
