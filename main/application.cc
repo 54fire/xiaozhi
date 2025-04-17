@@ -613,6 +613,14 @@ void Application::Start()
 
     SetDeviceState(kDeviceStateIdle);
     esp_timer_start_periodic(clock_timer_handle_, 1000000);
+
+#if CONFIG_IDF_TARGET_ESP32S3 && (CONFIG_BOARD_TYPE_HUG_BEAT_WIFI || CONFIG_BOARD_TYPE_HUG_BEAT_4G)
+    xTaskCreate([](void *arg) {
+        Application* app = (Application*)arg;
+        app->SensorEventTask();
+        vTaskDelete(NULL); 
+    }, "sensor_loop", 4096, this, 4, nullptr);
+#endif
 }
 
 void Application::OnClockTimer()
@@ -1057,10 +1065,8 @@ void Application::StopPlaybackAndReset()
 
 void Application::SensorEventTask()
 {
-#if CONFIG_IDF_TARGET_ESP32S3
     while (true)
     {
-
         SensorMessage msg;
         if (Sensor::Consume_Queue(&msg))
         {
@@ -1121,5 +1127,4 @@ void Application::SensorEventTask()
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
     }
-#endif
 }
