@@ -11,12 +11,12 @@ int OfflineBase::getNextSound() {
 }
 
 int OfflineBase::getPrevSound() {
-    if (current_index_ <= 0) {
+    if (current_index_ == 0) {
         current_index_ = 0;
     }
     int sound = getSounds()[current_index_];
     ESP_LOGI(get_tag(), "current sound: %d", current_index_);
-    current_index_--;
+    if (current_index_ > 0) current_index_--;
     return sound;
 }
 void OfflineBase::reset() {

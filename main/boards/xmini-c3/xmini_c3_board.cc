@@ -157,13 +157,13 @@ private:
             // GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume)); 
         });
 
-        prev_button_.OnClick([this]()
-                             {
-                                //  ESP_LOGI(TAG, "prev button clicked");
-                                 ToggleChatState();
-                                 if (!manager_->isOnlineScene()){
-                                     manager_->playPrevSound();
-                                 } });
+        prev_button_.OnClick([this]() {
+            //  ESP_LOGI(TAG, "prev button clicked");
+            ToggleChatState();
+            if (!manager_->isOnlineScene()){
+                manager_->playPrevSound();
+            } 
+        });
         prev_button_.OnLongPress([this]() {
             auto codec = GetAudioCodec();
             auto volume = codec->output_volume() - 10;
