@@ -39,7 +39,7 @@ typedef struct
 
 // 定义任务堆栈大小
 #define PRESSURE_TASK_STACK_SIZE (4096)
-#define VIBRATION_TASK_STACK_SIZE (2048)
+#define VIBRATION_TASK_STACK_SIZE (3069)
 #define TOUCH_TASK_STACK_SIZE (2048)
 
 // 定义震动传感器IO端口

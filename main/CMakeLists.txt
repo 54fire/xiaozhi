@@ -160,7 +160,7 @@ if(CONFIG_USE_AUDIO_PROCESSOR)
     list(APPEND SOURCES "audio_processing/audio_processor.cc")
 endif()
 if(CONFIG_USE_WAKE_WORD_DETECT)
-    list(APPEND SOURCES "audio_processing/wake_word_detect.cc ")
+    list(APPEND SOURCES "audio_processing/wake_word_detect.cc")
 endif()
 
 # 根据Kconfig选择语言目录
