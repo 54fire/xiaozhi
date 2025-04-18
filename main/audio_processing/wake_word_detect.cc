@@ -56,7 +56,6 @@ void WakeWordDetect::Initialize(AudioCodec* codec)
     codec_ = codec;
     channels_ = codec_->input_channels();
     reference_ = codec_->input_reference();
-    int ref_num = reference_ ? 1 : 0;
 
     srmodel_list_t *models = esp_srmodel_init("model");
     for (int i = 0; i < models->num; i++) {
@@ -77,6 +76,7 @@ void WakeWordDetect::Initialize(AudioCodec* codec)
         }
     }
 
+    int ref_num = reference_ ? 1 : 0;
     std::string input_format;
     for (int i = 0; i < channels_ - ref_num; i++) {
         input_format.push_back('M');
@@ -137,11 +137,14 @@ void WakeWordDetect::OnWakeWordDetected(std::function<void(const std::string &wa
 void WakeWordDetect::StartDetection()
 {
     ESP_LOGI(TAG, "StartDetection");
+    stop_detect_ =  false;
     xEventGroupSetBits(event_group_, DETECTION_RUNNING_EVENT);
 }
 
 void WakeWordDetect::StopDetection()
 {
+    ESP_LOGI(TAG, "StopDetection");
+    stop_detect_ =  true;
     xEventGroupClearBits(event_group_, DETECTION_RUNNING_EVENT);
     if (afe_data_ != nullptr) {
         afe_iface_->reset_buffer(afe_data_);
@@ -195,8 +198,11 @@ void WakeWordDetect::AudioDetectionTask() {
     auto fetch_size = afe_iface_->get_fetch_chunksize(afe_data_);
     auto feed_size = afe_iface_->get_feed_chunksize(afe_data_);
     ESP_LOGI(TAG, "Audio detection task started, feed size: %d fetch size: %d", feed_size, fetch_size);
+
     while (true) {
         xEventGroupWaitBits(event_group_, DETECTION_RUNNING_EVENT, pdFALSE, pdTRUE, portMAX_DELAY);
+        
+        if (stop_detect_) continue;
 
         auto res = afe_iface_->fetch_with_delay(afe_data_, portMAX_DELAY);
         if (res == nullptr || res->ret_value == ESP_FAIL) {
@@ -216,14 +222,15 @@ void WakeWordDetect::AudioDetectionTask() {
             }
         }
 #else
+        if (multinet_model_name_.empty()) return;
         esp_mn_state_t mn_state = multinet_->detect(model_data_, res->data);
         if (mn_state == ESP_MN_STATE_DETECTED)
         {
+            StopDetection();
             esp_mn_results_t *mn_result = multinet_->get_results(model_data_);
             for (int i = 0; i < mn_result->num; i++)
             {
                 ESP_LOGI(TAG, "Detected command: '%s', Probability: %.2f,num:%d ", mn_result->string, mn_result->prob[i],mn_result->num);
-                StopDetection();
 #if CONFIG_COMMAND_WAKE_NAME
                 last_detected_wake_word_ = CONFIG_COMMAND_WAKE_NAME;
 #else
@@ -231,7 +238,7 @@ void WakeWordDetect::AudioDetectionTask() {
 #endif
                 if (wake_word_detected_callback_)
                 {
-                    wake_word_detected_callback_(last_detected_wake_word_);
+                    wake_word_detected_callback_(WAKE_NAME);
                 }
             }
         }

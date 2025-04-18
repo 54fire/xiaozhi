@@ -26,7 +26,7 @@
 #define TIAN_XIAO_HU_CODE 2
 #define XIAO_YU_XIAO_YU "xiao yu xiao yu"
 #define XIAO_YU_XIAO_YU_CODE 3
-#define USE_COMMAND_WAKE 1
+#define USE_COMMAND_WAKE 0
 #define WAKE_COMMAND XIAO_YU_XIAO_YU
 #define WAKE_NAME "你好，小语"
 
@@ -71,6 +71,7 @@ private:
     std::list<std::vector<uint8_t>> wake_word_opus_;
     std::mutex wake_word_mutex_;
     std::condition_variable wake_word_cv_;
+    bool stop_detect_;
 
     esp_mn_iface_t *multinet_;
     model_iface_data_t *model_data_;

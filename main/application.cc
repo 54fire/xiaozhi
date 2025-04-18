@@ -946,6 +946,9 @@ void Application::SetDeviceState(DeviceState state)
         }
         break;
     case kDeviceStateSpeaking:
+#if CONFIG_USE_WAKE_WORD_DETECT
+        wake_word_detect_.StopDetection();
+#endif
         display->SetStatus(Lang::Strings::SPEAKING);
         ResetDecoder();
         codec->EnableOutput(true);
@@ -1002,24 +1005,23 @@ void Application::WakeWordInvoke(const std::string &wake_word)
     if (device_state_ == kDeviceStateIdle)
     {
         ToggleChatState();
-        Schedule([this, wake_word]()
-                 {
+        Schedule([this, wake_word]() {
             if (protocol_) {
                 protocol_->SendWakeWordDetected(wake_word); 
-            } });
+            }
+        });
     }
     else if (device_state_ == kDeviceStateSpeaking)
     {
-        Schedule([this]()
-                 { AbortSpeaking(kAbortReasonNone); });
+        Schedule([this]() { AbortSpeaking(kAbortReasonNone); });
     }
     else if (device_state_ == kDeviceStateListening)
     {
-        Schedule([this]()
-                 {
+        Schedule([this]() {
             if (protocol_) {
                 protocol_->CloseAudioChannel();
-            } });
+            }
+        });
     }
 }
 
@@ -1113,7 +1115,7 @@ void Application::SensorEventTask()
                 protocol_->SendSensorDetected(sensor_msg_, msg.value, true);
                 SetDeviceState(kDeviceStateSpeaking);
                 vTaskDelay(pdMS_TO_TICKS(2000));
-                // keep_listening_ = true;
+                keep_listening_ = true;
             }
             else if (device_state_ != kDeviceStateSpeaking)
             {
