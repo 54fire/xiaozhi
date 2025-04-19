@@ -103,7 +103,7 @@ void WifiBoard::StartNetwork() {
     wifi_station.Start();
 
     // Try to connect to WiFi, if failed, launch the WiFi configuration AP
-    if (!wifi_station.WaitForConnected(60 * 1000)) {
+    if (!wifi_station.WaitForConnected(15 * 1000)) {
         #if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
         if (!OfflineSceneManager::getInstance()->isOnlineScene()) {
             return;
