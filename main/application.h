@@ -76,6 +76,7 @@ public:
     void UpdateIotStates();
     void Reboot();
     void WakeWordInvoke(const std::string& wake_word);
+    void Narrate(const std::string_view& sound);
     void PlaySound(const std::string_view& sound);
     void StopPlaybackAndReset(); 
     bool CanEnterSleepMode();

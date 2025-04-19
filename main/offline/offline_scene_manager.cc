@@ -123,7 +123,7 @@ void OfflineSceneManager::playPrevSound()
 
 void OfflineSceneManager::Play(const std::string_view &sound) {
     auto &app = Application::GetInstance();
-    app.PlaySound(sound);
+    app.Narrate(sound);
 }
 
 bool OfflineSceneManager::isOnlineScene() const

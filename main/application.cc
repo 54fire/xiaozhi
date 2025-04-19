@@ -238,13 +238,17 @@ void Application::DismissAlert()
     }
 }
 
+void Application::Narrate(const std::string_view &sound) {
+    SetDeviceState(kDeviceStateSpeaking);
+    PlaySound(sound);
+}
+
 void Application::PlaySound(const std::string_view &sound)
 {
     ESP_LOGI(TAG, "audio queque size: %d", audio_decode_queue_.size());
     auto codec = Board::GetInstance().GetAudioCodec();
     codec->EnableOutput(true);
     SetDecodeSampleRate(16000);
-    SetDeviceState(kDeviceStateSpeaking);
 
     const char *data = sound.data();
     size_t size = sound.size();
@@ -621,6 +625,8 @@ void Application::Start()
         vTaskDelete(NULL); 
     }, "sensor_loop", 4096, this, 4, nullptr);
 #endif
+
+    PlaySound(Lang::Sounds::P3_SUCCESS);
 }
 
 void Application::OnClockTimer()
