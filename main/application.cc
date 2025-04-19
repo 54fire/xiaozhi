@@ -1065,6 +1065,7 @@ void Application::StopPlaybackAndReset()
     aborted_ = false;
 }
 
+#if CONFIG_IDF_TARGET_ESP32S3 && (CONFIG_BOARD_TYPE_HUG_BEAT_WIFI || CONFIG_BOARD_TYPE_HUG_BEAT_4G)
 void Application::SensorEventTask()
 {
     while (true)
@@ -1130,3 +1131,4 @@ void Application::SensorEventTask()
         }
     }
 }
+#endif
