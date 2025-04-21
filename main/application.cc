@@ -296,8 +296,7 @@ void Application::ToggleChatState()
 
     if (device_state_ == kDeviceStateIdle)
     {
-        Schedule([this]()
-                 {
+        Schedule([this]() {
             SetDeviceState(kDeviceStateConnecting);
             if (!protocol_->OpenAudioChannel()) {
                 return;
@@ -305,17 +304,16 @@ void Application::ToggleChatState()
 
             keep_listening_ = true;
             protocol_->SendStartListening(kListeningModeAutoStop);
-            SetDeviceState(kDeviceStateListening); });
+            SetDeviceState(kDeviceStateListening);
+        });
     }
     else if (device_state_ == kDeviceStateSpeaking)
     {
-        Schedule([this]()
-                 { AbortSpeaking(kAbortReasonNone); });
+        // Schedule([this]() { AbortSpeaking(kAbortReasonNone); });
     }
     else if (device_state_ == kDeviceStateListening)
     {
-        Schedule([this]()
-                 { protocol_->CloseAudioChannel(); });
+        Schedule([this]() { protocol_->CloseAudioChannel(); });
     }
 }
 
@@ -947,7 +945,7 @@ void Application::SetDeviceState(DeviceState state)
         UpdateIotStates();
         if (previous_state == kDeviceStateSpeaking)
         {
-            PlaySound(Lang::Sounds::P3_SUCCESS);
+            if (keep_listening_) PlaySound(Lang::Sounds::P3_SUCCESS);
             // FIXME: Wait for the speaker to empty the buffer
             vTaskDelay(pdMS_TO_TICKS(120));
         }
