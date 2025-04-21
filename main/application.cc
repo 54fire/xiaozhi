@@ -738,7 +738,7 @@ void Application::OutputAudio()
         return;
     }
 
-    if (device_state_ == kDeviceStateListening || aborted_)
+    if (aborted_)
     {
         audio_decode_queue_.clear();
         return;
@@ -947,6 +947,7 @@ void Application::SetDeviceState(DeviceState state)
         UpdateIotStates();
         if (previous_state == kDeviceStateSpeaking)
         {
+            PlaySound(Lang::Sounds::P3_SUCCESS);
             // FIXME: Wait for the speaker to empty the buffer
             vTaskDelay(pdMS_TO_TICKS(120));
         }
