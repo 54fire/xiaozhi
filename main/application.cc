@@ -624,7 +624,9 @@ void Application::Start()
     }, "sensor_loop", 4096, this, 4, nullptr);
 #endif
 
-    PlaySound(Lang::Sounds::P3_SUCCESS);
+    if (kDeviceStateIdle == device_state_) {
+        PlaySound(Lang::Sounds::P3_SUCCESS);
+    }
 }
 
 void Application::OnClockTimer()

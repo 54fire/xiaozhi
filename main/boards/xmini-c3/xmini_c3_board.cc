@@ -81,10 +81,11 @@ private:
             return;
         }
        
-        if (app.GetDeviceState() == kDeviceStateStarting && !WifiStation::GetInstance().IsConnected())
+        if (!WifiStation::GetInstance().IsConnected())
         {
             // TODO Reboot the device, not reboot wifi
             ResetWifiConfiguration();
+            return;
         }
         if (!press_to_talk_enabled_)
         {
@@ -96,9 +97,7 @@ private:
     {
         boot_button_.OnClick([this]() {
             ToggleChatState();
-            if (manager_->isOnlineScene()){
-                power_save_timer_->WakeUp();
-            }
+            power_save_timer_->WakeUp();
         });
 
         boot_button_.OnLongPress([this]() { 
