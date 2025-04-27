@@ -157,6 +157,33 @@ void WebsocketProtocol::ParseServerHello(const cJSON* root) {
             server_sample_rate_ = sample_rate->valueint;
         }
     }
+    
+    auto session_id = cJSON_GetObjectItem(root, "session_id");
+    if (session_id != NULL) {
+        session_id_ = session_id->valuestring;
+    }
 
     xEventGroupSetBits(event_group_handle_, WEBSOCKET_PROTOCOL_SERVER_HELLO_EVENT);
+}
+
+void WebsocketProtocol::StartSession() {
+    if (websocket_ == nullptr) {
+        return;
+    }
+    if (session_id_.empty()) {
+        ESP_LOGE(TAG, "Unknown session id");
+        return;
+    }
+    std::string message = "{";
+    message += "\"type\":\"listen\",";
+    message += "\"state\": \"detect\",";
+    #ifdef CONFIG_LAN_XIAOHONGMEI
+    message += "\"text\":\"你好，小红梅\"";
+    #elif CONFIG_LAN_XIAOHUOGUO
+    message += "\"text\":\"你好，小火锅\"";
+    #else
+    message += "\"text\":\"你好\"";
+    #endif
+    message += "}";
+    websocket_->Send(message);
 }

@@ -58,6 +58,7 @@ public:
     virtual void SendIotDescriptors(const std::string &descriptors);
     virtual void SendIotStates(const std::string &states);
     virtual void SendSensorDetected(const std::string &sensor, const int &sensorValue, const bool wakup);
+    virtual void StartSession() = 0;
 
 protected:
     std::function<void(const cJSON *root)> on_incoming_json_;

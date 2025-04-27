@@ -298,3 +298,5 @@ std::string MqttProtocol::DecodeHexString(const std::string& hex_string) {
 bool MqttProtocol::IsAudioChannelOpened() const {
     return udp_ != nullptr && !error_occurred_ && !IsTimeout();
 }
+
+void MqttProtocol::StartSession() {}
