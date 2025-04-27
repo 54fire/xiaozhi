@@ -9,6 +9,7 @@
 #include <freertos/event_groups.h>
 
 #define WEBSOCKET_PROTOCOL_SERVER_HELLO_EVENT (1 << 0)
+#define WEBSOCKET_PROTOCOL_SERVER_SESSION_EVENT (1 << 1)
 
 class WebsocketProtocol : public Protocol {
 public:
@@ -20,10 +21,12 @@ public:
     bool OpenAudioChannel() override;
     void CloseAudioChannel() override;
     bool IsAudioChannelOpened() const override;
+    void StartSession() override;
 
 private:
     EventGroupHandle_t event_group_handle_;
     WebSocket* websocket_ = nullptr;
+    std::string session_id_;
 
     void ParseServerHello(const cJSON* root);
     void SendText(const std::string& text) override;
