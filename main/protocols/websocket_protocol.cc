@@ -23,6 +23,7 @@ WebsocketProtocol::~WebsocketProtocol() {
 }
 
 void WebsocketProtocol::Start() {
+    OpenAudioChannel();
 }
 
 void WebsocketProtocol::SendAudio(const std::vector<uint8_t>& data) {

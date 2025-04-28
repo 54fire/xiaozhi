@@ -82,10 +82,20 @@ void WifiBoard::StartNetwork() {
 
     auto& wifi_station = WifiStation::GetInstance();
     wifi_station.OnScanBegin([this]() {
+#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
+        /* Network connection prompt tone */
+        auto& application = Application::GetInstance();
+        application.PlaySound(Lang::Sounds::P3_SCANNING_WIFI);
+#endif
         auto display = Board::GetInstance().GetDisplay();
         display->ShowNotification(Lang::Strings::SCANNING_WIFI, 30000);
     });
     wifi_station.OnConnect([this](const std::string& ssid) {
+#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
+        /* Network connection prompt tone */
+        auto& application = Application::GetInstance();
+        application.PlaySound(Lang::Sounds::P3_CONNECT_NET);
+#endif
         auto display = Board::GetInstance().GetDisplay();
         std::string notification = Lang::Strings::CONNECT_TO;
         notification += ssid;

@@ -168,7 +168,7 @@ void Application::CheckNewVersion()
             continue;
         }
 
-        SetDeviceState(kDeviceStateIdle);
+        // SetDeviceState(kDeviceStateIdle);
         display->SetChatMessage("system", "");
         // PlaySound(Lang::Sounds::P3_SUCCESS);
         // Exit the loop if upgrade or idle
@@ -304,7 +304,9 @@ void Application::ToggleChatState()
 
             keep_listening_ = true;
             protocol_->SendStartListening(kListeningModeAutoStop);
+#if !CONFIG_LAN_XIAOHONGMEI && !CONFIG_LAN_XIAOHUOGUO
             SetDeviceState(kDeviceStateListening);
+#endif
         });
     }
     else if (device_state_ == kDeviceStateSpeaking)
@@ -359,12 +361,12 @@ void Application::StartListening()
 
 void Application::StopListening()
 {
-    Schedule([this]()
-             {
+    Schedule([this]() {
         if (device_state_ == kDeviceStateListening) {
             protocol_->SendStopListening();
             SetDeviceState(kDeviceStateIdle);
-        } });
+        }
+    });
 }
 
 void Application::InitProtocol() {
@@ -397,14 +399,15 @@ void Application::InitProtocol() {
                 protocol_->server_sample_rate(), codec->output_sample_rate());
         }
         SetDecodeSampleRate(protocol_->server_sample_rate());
-        // auto& thing_manager = iot::ThingManager::GetInstance();
-        // protocol_->SendIotDescriptors(thing_manager.GetDescriptorsJson());
-        // std::string states;
-        // if (thing_manager.GetStatesJson(states, false)) {
-        //     protocol_->SendIotStates(states);
-        // }
-        protocol_->StartSession();
+        auto& thing_manager = iot::ThingManager::GetInstance();
+        protocol_->SendIotDescriptors(thing_manager.GetDescriptorsJson());
+        std::string states;
+        if (thing_manager.GetStatesJson(states, false)) {
+            protocol_->SendIotStates(states);
+        }
+        keep_listening_ = true;
         SetDeviceState(kDeviceStateSpeaking);
+        protocol_->StartSession();
     });
     protocol_->OnAudioChannelClosed([this, &board]() {
         board.SetPowerSaveMode(true);
@@ -517,16 +520,16 @@ void Application::Start()
         input_resampler_.Configure(codec->input_sample_rate(), 16000);
         reference_resampler_.Configure(codec->input_sample_rate(), 16000);
     }
-    codec->OnInputReady([this, codec]()
-                        {
+    codec->OnInputReady([this, codec]() {
         BaseType_t higher_priority_task_woken = pdFALSE;
         xEventGroupSetBitsFromISR(event_group_, AUDIO_INPUT_READY_EVENT, &higher_priority_task_woken);
-        return higher_priority_task_woken == pdTRUE; });
-    codec->OnOutputReady([this]()
-                         {
+        return higher_priority_task_woken == pdTRUE;
+    });
+    codec->OnOutputReady([this]() {
         BaseType_t higher_priority_task_woken = pdFALSE;
         xEventGroupSetBitsFromISR(event_group_, AUDIO_OUTPUT_READY_EVENT, &higher_priority_task_woken);
-        return higher_priority_task_woken == pdTRUE; });
+        return higher_priority_task_woken == pdTRUE;
+    });
     codec->Start();
 
     /* Start the main loop */
@@ -535,6 +538,8 @@ void Application::Start()
         app->MainLoop();
         vTaskDelete(NULL); 
     }, "main_loop", 4096 * 2, this, 4, nullptr);
+
+    PlaySound(Lang::Sounds::P3_SUCCESS);
 
     /* Wait for the network to be ready */
     board.StartNetwork();
@@ -617,7 +622,6 @@ void Application::Start()
     #endif
     };
 
-    SetDeviceState(kDeviceStateIdle);
     esp_timer_start_periodic(clock_timer_handle_, 1000000);
 
 #if CONFIG_IDF_TARGET_ESP32S3 && (CONFIG_BOARD_TYPE_HUG_BEAT_WIFI || CONFIG_BOARD_TYPE_HUG_BEAT_4G)
@@ -628,9 +632,7 @@ void Application::Start()
     }, "sensor_loop", 4096, this, 4, nullptr);
 #endif
 
-    if (kDeviceStateIdle == device_state_) {
-        PlaySound(Lang::Sounds::P3_SUCCESS);
-    }
+    // SetDeviceState(kDeviceStateIdle);
 }
 
 void Application::OnClockTimer()

@@ -18,6 +18,7 @@
         "CONNECT_TO":"连接 ",
         "CONNECTING":"连接中...",
         "CONNECTED_TO":"已连接 ",
+        "CONNECT_NET": "正在连接网络",
 
         "LISTENING":"聆听中...",
         "SPEAKING":"说话中...",
