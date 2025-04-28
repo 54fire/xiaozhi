@@ -11,3 +11,5 @@ dependencies.lock
 releases/
 main/assets/lang_config.h
 .DS_Store
+cmake-build-debug
+.idea
