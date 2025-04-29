@@ -381,7 +381,7 @@ void Application::InitProtocol() {
     #endif
     protocol_->OnNetworkError([this](const std::string &message) {
         SetDeviceState(kDeviceStateIdle);
-        Alert(Lang::Strings::ERROR, message.c_str(), "sad", Lang::Sounds::P3_EXCLAMATION); 
+        Alert(Lang::Strings::ERROR, message.c_str(), "sad", Lang::Sounds::P3_SERVER_NOT_CONNECTED); 
     });
     protocol_->OnIncomingAudio([this](std::vector<uint8_t> &&data) {
         #if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
