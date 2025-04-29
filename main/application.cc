@@ -303,8 +303,8 @@ void Application::ToggleChatState()
             }
 
             keep_listening_ = true;
-            protocol_->SendStartListening(kListeningModeAutoStop);
 #if !CONFIG_LAN_XIAOHONGMEI && !CONFIG_LAN_XIAOHUOGUO
+            protocol_->SendStartListening(kListeningModeAutoStop);
             SetDeviceState(kDeviceStateListening);
 #endif
         });
@@ -406,8 +406,10 @@ void Application::InitProtocol() {
             protocol_->SendIotStates(states);
         }
         keep_listening_ = true;
+#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
         SetDeviceState(kDeviceStateSpeaking);
         protocol_->StartSession();
+#endif
     });
     protocol_->OnAudioChannelClosed([this, &board]() {
         board.SetPowerSaveMode(true);
