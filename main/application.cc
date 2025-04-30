@@ -22,7 +22,8 @@
 #include <esp_app_desc.h>
 
 #define TAG "Application"
-#define CONFIG_OTA_VERSION_URL_ZLY "https://xiaozhi.zxzyn.com/xiaozhi/ota/"
+// #define CONFIG_OTA_VERSION_URL_ZLY "https://xiaozhi.zxzyn.com/xiaozhi/ota/"
+#define CONFIG_OTA_VERSION_URL_ZLY "http://192.168.10.116:8002/xiaozhi/ota/"
 
 static const char *const STATE_STRINGS[] = {
     "unknown",
@@ -559,6 +560,10 @@ void Application::Start()
         ota_.SetHeader("Accept-Language", Lang::CODE);
         auto app_desc = esp_app_get_description();
         ota_.SetHeader("User-Agent", std::string(BOARD_NAME "/") + app_desc->version);
+#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
+        ota_.SetHeader("Tenant-Id", TENANT_ID);
+        ota_.SetHeader("Agent-Code", AGENT_CODE);
+#endif
 
         xTaskCreate([](void *arg) {
             Application* app = (Application*)arg;

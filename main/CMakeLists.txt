@@ -165,10 +165,13 @@ endif()
 
 # 根据Kconfig选择语言目录
 if(CONFIG_LAN_XIAOHONGMEI OR CONFIG_LAN_XIAOHUOGUO)
+    set(TENANT_ID "CQGQT")
     if(CONFIG_LAN_XIAOHONGMEI)
         set(LANG_DIR "xiaohongmei")
+        set(AGENT_CODE "AGT_1745309655948")
     elseif(CONFIG_LAN_XIAOHUOGUO)
         set(LANG_DIR "xiaohuoguo")
+        set(AGENT_CODE "AGT_1745221663816")
     endif()
     list(APPEND SOURCES 
     "offline/offline_base.cc"
@@ -222,9 +225,17 @@ endif()
 if(NOT BOARD_NAME)
     set(BOARD_NAME ${BOARD_TYPE})
 endif()
-target_compile_definitions(${COMPONENT_LIB}
-                    PRIVATE BOARD_TYPE=\"${BOARD_TYPE}\" BOARD_NAME=\"${BOARD_NAME}\"
-                    )
+if(CONFIG_LAN_XIAOHONGMEI OR CONFIG_LAN_XIAOHUOGUO)
+target_compile_definitions(
+    ${COMPONENT_LIB}
+    PRIVATE BOARD_TYPE=\"${BOARD_TYPE}\" BOARD_NAME=\"${BOARD_NAME}\" TENANT_ID=\"${TENANT_ID}\" AGENT_CODE=\"${AGENT_CODE}\" 
+)
+else()
+target_compile_definitions(
+    ${COMPONENT_LIB}
+    PRIVATE BOARD_TYPE=\"${BOARD_TYPE}\" BOARD_NAME=\"${BOARD_NAME}\"
+)
+endif()
 
 # 添加生成规则
 add_custom_command(

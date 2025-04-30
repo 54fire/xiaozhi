@@ -132,9 +132,8 @@ private:
         //     } });
 
         next_button_.OnClick([this]() {
-            // ESP_LOGI(TAG, "next button clicked");
-
             ToggleChatState();
+            power_save_timer_->WakeUp();
             if (!manager_->isOnlineScene()){
                 manager_->playNextSound();
             }
@@ -157,8 +156,8 @@ private:
         });
 
         prev_button_.OnClick([this]() {
-            //  ESP_LOGI(TAG, "prev button clicked");
             ToggleChatState();
+            power_save_timer_->WakeUp();
             if (!manager_->isOnlineScene()){
                 manager_->playPrevSound();
             } 
