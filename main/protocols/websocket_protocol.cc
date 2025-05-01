@@ -69,6 +69,11 @@ bool WebsocketProtocol::OpenAudioChannel() {
     websocket_->SetHeader("Protocol-Version", "1");
     websocket_->SetHeader("Device-Id", SystemInfo::GetMacAddress().c_str());
     websocket_->SetHeader("Client-Id", Board::GetInstance().GetUuid().c_str());
+#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
+    websocket_->SetHeader("Tenant-Id", TENANT_ID);
+    websocket_->SetHeader("Agent-Code", AGENT_CODE);
+#endif
+
 
     websocket_->OnData([this](const char* data, size_t len, bool binary) {
         if (binary) {
