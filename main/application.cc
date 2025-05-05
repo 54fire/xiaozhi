@@ -22,8 +22,7 @@
 #include <esp_app_desc.h>
 
 #define TAG "Application"
-// #define CONFIG_OTA_VERSION_URL_ZLY "https://xiaozhi.zxzyn.com/xiaozhi/ota/"
-#define CONFIG_OTA_VERSION_URL_ZLY "http://192.168.10.116:8002/xiaozhi/ota/"
+#define CONFIG_OTA_VERSION_URL_ZLY "https://xiaozhi.zxzyn.com/xiaozhi/ota/"
 
 static const char *const STATE_STRINGS[] = {
     "unknown",

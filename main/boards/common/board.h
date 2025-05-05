@@ -16,8 +16,7 @@
 // #define CONFIG_WEBSOCKET_URL "ws://8.137.102.252:8788/xiaozhi/v1/"
 // #define CONFIG_WEBSOCKET_URL "wss://api.tenclass.net/xiaozhi/v1/"
 // #define CONFIG_WEBSOCKET_URL "ws://47.96.93.102:8788/xiaozhi/v1/"
-// #define CONFIG_WEBSOCKET_URL "ws://ai.prod.zxzyn.com/xiaozhi/v1/"
-#define CONFIG_WEBSOCKET_URL "ws://192.168.1.185:8000/xiaozhi/v1/"
+#define CONFIG_WEBSOCKET_URL "ws://ai.prod.zxzyn.com/xiaozhi/v1/"
 
 void *create_board();
 class AudioCodec;

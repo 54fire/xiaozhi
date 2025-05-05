@@ -42,7 +42,15 @@ void WifiBoard::EnterWifiConfigMode() {
 
     auto& wifi_ap = WifiConfigurationAp::GetInstance();
     wifi_ap.SetLanguage(Lang::CODE);
-    wifi_ap.SetSsidPrefix("Xiaozhi");
+
+#if CONFIG_LAN_XIAOHONGMEI
+    const std::string ssid_prefix = "xiaohongmei";
+#elif CONFIG_LAN_XIAOHUOGUO
+    const std::string ssid_prefix = "xiaohuoguo";
+#else
+    const std::string ssid_prefix = "zly";
+#endif
+    wifi_ap.SetSsidPrefix(std::move(ssid_prefix));
     wifi_ap.Start();
 
     // 显示 WiFi 配置 AP 的 SSID 和 Web 服务器 URL
