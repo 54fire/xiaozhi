@@ -642,7 +642,9 @@ void Application::Start()
     }, "sensor_loop", 4096, this, 4, nullptr);
 #endif
 
-    // SetDeviceState(kDeviceStateIdle);
+#if !CONFIG_LAN_XIAOHONGMEI && !CONFIG_LAN_XIAOHUOGUO
+    SetDeviceState(kDeviceStateIdle);
+#endif
 }
 
 void Application::OnClockTimer()
