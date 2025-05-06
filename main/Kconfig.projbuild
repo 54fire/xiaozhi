@@ -161,8 +161,15 @@ choice BOARD_TYPE
         bool "SenseCAP Watcher"
 endchoice
 
-config COMMAND_WAKE_WORD
+config USE_COMMAND_WAKE
     depends on BOARD_TYPE_HUG_BEAT_WIFI || BOARD_TYPE_HUG_BEAT_4G
+    bool "使用指令唤醒词"
+    default ""
+    help
+        使用指令唤醒词
+
+config COMMAND_WAKE_WORD
+    depends on USE_COMMAND_WAKE
     string "指令唤醒词"
     default ""
     help

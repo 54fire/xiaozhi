@@ -94,7 +94,7 @@ void WakeWordDetect::Initialize(AudioCodec* codec)
     afe_iface_ = esp_afe_handle_from_config(afe_config);
     afe_data_ = afe_iface_->create_from_config(afe_config);
 
-#if USE_COMMAND_WAKE
+#if CONFIG_USE_COMMAND_WAKE
     if (!multinet_model_name_.empty())
     {
         multinet_ = esp_mn_handle_from_name(const_cast<char *>(multinet_model_name_.c_str()));
@@ -212,7 +212,7 @@ void WakeWordDetect::AudioDetectionTask() {
         // Store the wake word data for voice recognition, like who is speaking
         StoreWakeWordData((uint16_t*)res->data, res->data_size / sizeof(uint16_t));
 
-#if !USE_COMMAND_WAKE
+#if !CONFIG_USE_COMMAND_WAKE
         if (res->wakeup_state == WAKENET_DETECTED) {
             StopDetection();
             last_detected_wake_word_ = wake_words_[res->wake_word_index - 1];
