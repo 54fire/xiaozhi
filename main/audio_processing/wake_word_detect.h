@@ -20,14 +20,6 @@
 
 #include "audio_codec.h"
 
-#define TIAN_XIAO_MEI "tian xiao mei"
-#define TIAN_XIAO_MEI_CODE 1
-#define TIAN_XIAO_HU "tian xiao hu"
-#define TIAN_XIAO_HU_CODE 2
-#define XIAO_YU_XIAO_YU "xiao yu xiao yu"
-#define XIAO_YU_XIAO_YU_CODE 3
-#define USE_COMMAND_WAKE 0
-#define WAKE_COMMAND XIAO_YU_XIAO_YU
 #define WAKE_NAME "你好，小语"
 
 class WakeWordDetect
