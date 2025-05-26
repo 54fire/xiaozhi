@@ -49,6 +49,7 @@ OfflineSceneManager* OfflineSceneManager::getInstance()
 
 void OfflineSceneManager::MountFs()
 {
+#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
     const mmap_assets_config_t config_offinline_audio = {
         .partition_label = "offline_audio",
         // .max_files = MMAP_OFFLINE_AUDIO_FILES,
@@ -68,6 +69,7 @@ void OfflineSceneManager::MountFs()
 
     mmap_assets_new(&config_offinline_audio, &asset_offline_audio);
     ESP_LOGI(TAG, "[%s]stored_files:%d", config_offinline_audio.partition_label, mmap_assets_get_stored_files(asset_offline_audio));
+#endif
 }
 
 void OfflineSceneManager::switchToNextScene() {

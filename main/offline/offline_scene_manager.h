@@ -21,8 +21,9 @@ private:
     std::array<std::string, 4> scene_names_ = {"fxq", "fns", "fql", "online"};
     size_t current_scene_index_ = 3;
     OfflineBase *current_player_;
+#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
     mmap_assets_handle_t asset_offline_audio;
-
+#endif
     // 单例相关成员
     static OfflineSceneManager *instance_;
     static std::mutex mutex_;
