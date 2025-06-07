@@ -2,11 +2,11 @@
 #include "board.h"
 #include "display.h"
 #include "system_info.h"
-#include "ml307_ssl_transport.h"
+// #include "ml307_ssl_transport.h"
 #include "audio_codec.h"
-#include "mqtt_protocol.h"
+// #include "mqtt_protocol.h"
 #include "websocket_protocol.h"
-#include "font_awesome_symbols.h"
+// #include "font_awesome_symbols.h"
 #include "iot/thing_manager.h"
 #include "assets/lang_config.h"
 
@@ -75,9 +75,10 @@ void Application::CheckNewVersion()
     // Check if there is a new firmware version available
     ota_.SetPostData(board.GetJson());
 
+#if 0
     const int MAX_RETRY = 10;
     int retry_count = 0;
-
+#endif
     while (true)
     {
         if (!ota_.CheckVersion())
@@ -92,7 +93,7 @@ void Application::CheckNewVersion()
             // vTaskDelay(pdMS_TO_TICKS(60000));
             // return;
         }
-        retry_count = 0;
+        // retry_count = 0;
 
 //         if (ota_.HasNewVersion())
 //         {
@@ -253,8 +254,12 @@ void Application::PlaySound(const std::string_view &sound)
     const char *data = sound.data();
     size_t size = sound.size();
     ESP_LOGI(TAG, "PlaySound sound.size: %u", size);
+    audio_counter_ = 0;
+    last_pcm_samples_ = 0;
+
     for (const char *p = data; p < data + size;)
     {
+        IncAudioCounter();
         if (aborted_)
         {
             ESP_LOGI(TAG, "PlaySound aborted");
@@ -454,7 +459,7 @@ void Application::InitProtocol() {
                 auto text = cJSON_GetObjectItem(root, "text");
                 if (text != NULL) {
                     ESP_LOGI(TAG, "<< %s", text->valuestring);
-                    Schedule([this, display, message = std::string(text->valuestring)]() {
+                    Schedule([ display, message = std::string(text->valuestring)]() {
                         display->SetChatMessage("assistant", message.c_str());
                     });
                 }
@@ -463,14 +468,14 @@ void Application::InitProtocol() {
             auto text = cJSON_GetObjectItem(root, "text");
             if (text != NULL) {
                 ESP_LOGI(TAG, ">> %s", text->valuestring);
-                Schedule([this, display, message = std::string(text->valuestring)]() {
+                Schedule([ display, message = std::string(text->valuestring)]() {
                     display->SetChatMessage("user", message.c_str());
                 });
             }
         } else if (strcmp(type->valuestring, "llm") == 0) {
             auto emotion = cJSON_GetObjectItem(root, "emotion");
             if (emotion != NULL) {
-                Schedule([this, display, emotion_str = std::string(emotion->valuestring)]() {
+                Schedule([ display, emotion_str = std::string(emotion->valuestring)]() {
                     display->SetEmotion(emotion_str.c_str());
                 });
             }
@@ -526,7 +531,7 @@ void Application::Start()
         input_resampler_.Configure(codec->input_sample_rate(), 16000);
         reference_resampler_.Configure(codec->input_sample_rate(), 16000);
     }
-    codec->OnInputReady([this, codec]() {
+    codec->OnInputReady([this]() {
         BaseType_t higher_priority_task_woken = pdFALSE;
         xEventGroupSetBitsFromISR(event_group_, AUDIO_INPUT_READY_EVENT, &higher_priority_task_woken);
         return higher_priority_task_woken == pdTRUE;
@@ -664,7 +669,7 @@ void Application::OnClockTimer()
         {
             if (device_state_ == kDeviceStateIdle)
             {
-                Schedule([this]()
+                Schedule([]()
                          {
                     // Set status to clock "HH:MM"
                     time_t now = time(NULL);
@@ -697,9 +702,9 @@ void Application::MainLoop()
                                         pdTRUE, pdFALSE, portMAX_DELAY);
 
         if (
-            #if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
+#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
             OfflineSceneManager::getInstance()->isOnlineScene() && 
-            #endif
+#endif
             (bits & AUDIO_INPUT_READY_EVENT)
         )
         {
@@ -738,12 +743,25 @@ void Application::OutputAudio()
     std::unique_lock<std::mutex> lock(mutex_);
     if (audio_decode_queue_.empty())
     {
+        // 自动循环播放离线音乐
+#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
+        if (!OfflineSceneManager::getInstance()->isOnlineScene() && device_state_ == kDeviceStateSpeaking)
+        {
+            // ESP_LOGI(TAG, "==OutputAudio: playback finished, calling callback");
+            // if (IsAudioPlaybackFinished() && playback_finished_callback_) {
+            //     ESP_LOGI(TAG, "OutputAudio: playback finished, calling callback");
+            //     background_task_->Schedule([this]() {
+            //         playback_finished_callback_();
+            //     });
+            // }
+        }
+#endif
         // Disable the output if there is no audio data for a long time
         if (
             device_state_ == kDeviceStateIdle
-            #if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
+#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
             || (!OfflineSceneManager::getInstance()->isOnlineScene() && device_state_ == kDeviceStateSpeaking)
-            #endif
+#endif
         )
         {
             auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - last_output_time_).count();
@@ -758,6 +776,7 @@ void Application::OutputAudio()
 
     if (aborted_)
     {
+        ESP_LOGI(TAG, "OutputAudio: aborted, clearing queue");
         audio_decode_queue_.clear();
         return;
     }
@@ -765,6 +784,7 @@ void Application::OutputAudio()
     last_output_time_ = now;
     auto opus = std::move(audio_decode_queue_.front());
     audio_decode_queue_.pop_front();
+
     lock.unlock();
     try {
         background_task_->Schedule([this, codec, opus = std::move(opus)]() mutable {
@@ -781,15 +801,27 @@ void Application::OutputAudio()
                     return;
                 }
                 // Resample if the sample rate is different
-                if (opus_decode_sample_rate_ != codec->output_sample_rate())
+                int sample_rate = codec->output_sample_rate();
+                if (opus_decode_sample_rate_ != sample_rate)
                 {
                     int target_size = output_resampler_.GetOutputSamples(pcm.size());
                     std::vector<int16_t> resampled(target_size);
                     output_resampler_.Process(pcm.data(), pcm.size(), resampled.data());
                     pcm = std::move(resampled);
                 }
-    
+
                 codec->OutputData(pcm);
+                last_pcm_samples_ = pcm.size();
+                last_sample_rate_ = sample_rate;
+                DecAudioCounter();
+
+                if (IsAudioPlaybackFinished() && playback_finished_callback_) {
+                    int ms = (last_pcm_samples_ * 1000) / last_sample_rate_;
+                    background_task_->Schedule([this, ms]() {
+                        vTaskDelay(pdMS_TO_TICKS(ms + 50));
+                        playback_finished_callback_();
+                    });
+                }
             }
             catch (const std::bad_alloc &e)
             {
@@ -1157,3 +1189,21 @@ void Application::SensorEventTask()
     }
 }
 #endif
+
+void Application::IncAudioCounter() {
+    audio_counter_++;
+    // ESP_LOGI(TAG, "AudioCounter++: %d", audio_counter_.load());
+}
+
+void Application::DecAudioCounter() {
+    audio_counter_--;
+    // ESP_LOGI(TAG, "AudioCounter--: %d", audio_counter_.load());
+}
+
+bool Application::IsAudioPlaybackFinished() const {
+    return audio_counter_ == 0;
+}
+
+void Application::SetPlaybackFinishedCallback(std::function<void()> cb) {
+    playback_finished_callback_ = cb;
+}

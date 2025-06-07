@@ -10,6 +10,7 @@
 #include <mutex>
 #include <list>
 #include <deque>
+#include <atomic>
 
 #include <opus_encoder.h>
 #include <opus_decoder.h>
@@ -84,6 +85,10 @@ public:
     void ResetAudioDecoder();
     void InitProtocol();
     void CloseProtocol();
+    void IncAudioCounter();
+    void DecAudioCounter();
+    bool IsAudioPlaybackFinished() const;
+    void SetPlaybackFinishedCallback(std::function<void()> cb);
 
 private:
     Application();
@@ -130,6 +135,11 @@ private:
 
     // Output audio silence seconds
     int max_silence_seconds_ = 30;
+
+    std::atomic<int> audio_counter_ = 0;
+    int last_pcm_samples_ = 0;
+    int last_sample_rate_ = 16000;
+    std::function<void()> playback_finished_callback_;
 
     void MainLoop();
     void InputAudio();
