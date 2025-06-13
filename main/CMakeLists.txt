@@ -228,9 +228,24 @@ idf_component_register(SRCS ${SOURCES}
                     )
 
 if(CONFIG_LAN_XIAOHONGMEI OR CONFIG_LAN_XIAOHUOGUO)
+# 为不同场景创建独立的分区
 spiffs_create_partition_assets(
-    offline_audio
-    "./assets/offline_audio/${LANG_DIR}"
+    fxq_audio
+    "./assets/offline_audio/${LANG_DIR}/xq"
+    FLASH_IN_PROJECT
+    MMAP_FILE_SUPPORT_FORMAT ".p3"
+)
+
+spiffs_create_partition_assets(
+    fns_audio
+    "./assets/offline_audio/${LANG_DIR}/ns"
+    FLASH_IN_PROJECT
+    MMAP_FILE_SUPPORT_FORMAT ".p3"
+)
+
+spiffs_create_partition_assets(
+    fql_audio
+    "./assets/offline_audio/${LANG_DIR}/ql"
     FLASH_IN_PROJECT
     MMAP_FILE_SUPPORT_FORMAT ".p3"
 )

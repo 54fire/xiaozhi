@@ -1,5 +1,4 @@
-#ifndef OFFLINE_SCENE_MANAGER_H
-#define OFFLINE_SCENE_MANAGER_H
+#pragma once
 
 #include <string>
 #include <map>
@@ -7,26 +6,36 @@
 #include <array>
 #include "offline_base.h"
 #include <mutex>
+#include <vector>
 
 #if CONFIG_LAN_XIAOHONGMEI
 #include "mmap_generate_xiaohongmei.h"
 #elif CONFIG_LAN_XIAOHUOGUO
 #include "mmap_generate_xiaohuoguo.h"
+#include "mmap_generate_xq.h"
+#include "mmap_generate_ns.h"
+#include "mmap_generate_ql.h"
 #endif
 
 class OfflineSceneManager
 {
 private:
-    std::map<std::string, std::unique_ptr<OfflineBase>> registered_scenes_;
-    std::array<std::string, 4> scene_names_ = {"fxq", "fns", "fql", "online"};
-    size_t current_scene_index_ = 3;
-    OfflineBase *current_player_;
-#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
-    mmap_assets_handle_t asset_offline_audio;
-#endif
-    // 单例相关成员
-    static OfflineSceneManager *instance_;
+    static OfflineSceneManager* instance_;
     static std::mutex mutex_;
+    
+    OfflineBase* current_player_;
+    std::map<std::string, std::unique_ptr<OfflineBase>> registered_scenes_;
+    std::vector<std::string> scene_names_ = {"fxq", "fns", "fql", "online"};
+    size_t current_scene_index_ = 0;
+
+    // 为每个场景添加独立的资源句柄
+    mmap_assets_handle_t asset_fxq_audio;
+    mmap_assets_handle_t asset_fns_audio;
+    mmap_assets_handle_t asset_fql_audio;
+    mmap_assets_handle_t asset_online_audio;
+
+    // 当前活跃的资源句柄
+    mmap_assets_handle_t* current_asset_handle_;
 
     // 私有构造函数和析构函数
     OfflineSceneManager();
@@ -34,6 +43,8 @@ private:
 
     // 注册音频文件
     void MountFs();
+    void MountSceneAssets(const std::string& scene_name);
+    void UnmountSceneAssets(const std::string& scene_name);
     // 播放音频文件
     void Play(const std::string_view &sound);
 
@@ -67,5 +78,3 @@ public:
     // 重置当前播放器的索引
     void resetCurrentPlayer();
 };
-
-#endif // OFFLINE_SCENE_MANAGER_H
