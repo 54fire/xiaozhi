@@ -12,10 +12,10 @@
 #include "mmap_generate_xiaohongmei.h"
 #elif CONFIG_LAN_XIAOHUOGUO
 #include "mmap_generate_xiaohuoguo.h"
+#endif
 #include "mmap_generate_xq.h"
 #include "mmap_generate_ns.h"
 #include "mmap_generate_ql.h"
-#endif
 
 class OfflineSceneManager
 {
