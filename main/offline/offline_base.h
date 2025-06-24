@@ -1,5 +1,4 @@
-#ifndef OFFLINE_BASE_H
-#define OFFLINE_BASE_H
+#pragma once
 
 #include <array>
 #include <string_view>
@@ -29,5 +28,3 @@ public:
     // 重置播放索引
     virtual void reset();
 };
-
-#endif // OFFLINE_BASE_H

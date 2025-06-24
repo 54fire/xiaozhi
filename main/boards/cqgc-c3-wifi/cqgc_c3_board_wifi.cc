@@ -30,7 +30,18 @@ private:
     bool press_to_talk_enabled_ = false;
     PowerSaveTimer *power_save_timer_;
     OfflineSceneManager *manager_ = nullptr;
+    bool continue_playing_ = 0;
 
+    void handleNextButtonClick() {
+        ToggleChatState();
+        power_save_timer_->WakeUp();
+#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
+        if (!manager_->isOnlineScene()) {
+            continue_playing_ = true;
+            manager_->playNextSound();
+        }
+#endif
+    }
     void InitializePowerSaveTimer()
     {
         power_save_timer_ = new PowerSaveTimer(160, 10);
@@ -89,10 +100,20 @@ private:
     void InitializeButtons()
     {
         boot_button_.OnClick([this]() {
-            ToggleChatState();
-            power_save_timer_->WakeUp();
+            if (continue_playing_ == false) {
+                handleNextButtonClick();
+            } else {
+                continue_playing_ = false;
+                auto &app = Application::GetInstance();
+                app.StopPlaybackAndReset();
+            }
         });
         boot_button_.OnLongPress([this]() { 
+            if (continue_playing_ == true) {
+                continue_playing_ = false;
+                auto &app = Application::GetInstance();
+                app.StopPlaybackAndReset();
+            }
             manager_->switchToNextScene();
             auto &app = Application::GetInstance();
             if (!manager_->isOnlineScene()) {
@@ -110,11 +131,13 @@ private:
         });
 
         next_button_.OnClick([this]() {
-            ToggleChatState();
-            power_save_timer_->WakeUp();
-            if (!manager_->isOnlineScene()){
-                manager_->playNextSound();
-            }
+          if (continue_playing_ == false) {
+            handleNextButtonClick();
+          } else {
+            continue_playing_ = false;
+            auto &app = Application::GetInstance();
+            app.StopPlaybackAndReset();
+          }
         });
         next_button_.OnLongPress([this]() {
             auto codec = GetAudioCodec();
@@ -133,11 +156,13 @@ private:
         });
 
         prev_button_.OnClick([this]() {
-            ToggleChatState();
-            power_save_timer_->WakeUp();
-            if (!manager_->isOnlineScene()){
-                manager_->playPrevSound();
-            } 
+            if (continue_playing_ == false) {
+                handleNextButtonClick();
+            } else {
+                continue_playing_ = false;
+                auto &app = Application::GetInstance();
+                app.StopPlaybackAndReset();
+            }
         });
         prev_button_.OnLongPress([this]() {
             auto codec = GetAudioCodec();
@@ -177,6 +202,13 @@ public:
         InitializeButtons();
         InitializePowerSaveTimer();
         InitializeIot();
+        auto &app = Application::GetInstance();
+        app.SetPlaybackFinishedCallback([this]() {
+            ESP_LOGI(TAG, "==Playback finished, calling callback");
+            if (continue_playing_) {
+              handleNextButtonClick();
+            }
+        });
     }
 
     virtual Led *GetLed() override

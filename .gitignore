@@ -2,7 +2,6 @@ tmp/
 managed_components/
 build/
 .vscode/
-.devcontainer/
 sdkconfig.old
 sdkconfig
 dependencies.lock
@@ -12,3 +11,4 @@ main/assets/lang_config.h
 .DS_Store
 cmake-build-debug
 .idea
+.cache/
