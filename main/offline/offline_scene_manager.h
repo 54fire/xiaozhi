@@ -26,7 +26,7 @@ private:
     OfflineBase* current_player_;
     std::map<std::string, std::unique_ptr<OfflineBase>> registered_scenes_;
     std::vector<std::string> scene_names_ = {"fxq", "fns", "fql", "online"};
-    size_t current_scene_index_ = 0;
+    size_t current_scene_index_ = 3;
 
     // 为每个场景添加独立的资源句柄
     mmap_assets_handle_t asset_fxq_audio;

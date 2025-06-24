@@ -743,19 +743,6 @@ void Application::OutputAudio()
     std::unique_lock<std::mutex> lock(mutex_);
     if (audio_decode_queue_.empty())
     {
-        // 自动循环播放离线音乐
-#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
-        if (!OfflineSceneManager::getInstance()->isOnlineScene() && device_state_ == kDeviceStateSpeaking)
-        {
-            // ESP_LOGI(TAG, "==OutputAudio: playback finished, calling callback");
-            // if (IsAudioPlaybackFinished() && playback_finished_callback_) {
-            //     ESP_LOGI(TAG, "OutputAudio: playback finished, calling callback");
-            //     background_task_->Schedule([this]() {
-            //         playback_finished_callback_();
-            //     });
-            // }
-        }
-#endif
         // Disable the output if there is no audio data for a long time
         if (
             device_state_ == kDeviceStateIdle
