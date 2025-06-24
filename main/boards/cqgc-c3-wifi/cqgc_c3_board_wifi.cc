@@ -99,10 +99,21 @@ private:
     void InitializeButtons()
     {
         boot_button_.OnClick([this]() {
-            ToggleChatState();
-            power_save_timer_->WakeUp();
+            if (continue_playing_ == false) {
+                continue_playing_ = true;
+                handleNextButtonClick();
+            } else {
+                continue_playing_ = false;
+                auto &app = Application::GetInstance();
+                app.StopPlaybackAndReset();
+            }
         });
         boot_button_.OnLongPress([this]() { 
+            if (continue_playing_ == true) {
+                continue_playing_ = false;
+                auto &app = Application::GetInstance();
+                app.StopPlaybackAndReset();
+            }
             manager_->switchToNextScene();
             auto &app = Application::GetInstance();
             if (!manager_->isOnlineScene()) {
@@ -146,11 +157,14 @@ private:
         });
 
         prev_button_.OnClick([this]() {
-            ToggleChatState();
-            power_save_timer_->WakeUp();
-            if (!manager_->isOnlineScene()){
-                manager_->playPrevSound();
-            } 
+            if (continue_playing_ == false) {
+                continue_playing_ = true;
+                handleNextButtonClick();
+            } else {
+                continue_playing_ = false;
+                auto &app = Application::GetInstance();
+                app.StopPlaybackAndReset();
+            }
         });
         prev_button_.OnLongPress([this]() {
             auto codec = GetAudioCodec();
