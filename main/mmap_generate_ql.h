@@ -14,7 +14,7 @@
 #include "esp_mmap_assets.h"
 
 #define MMAP_QL_FILES           53
-#define MMAP_QL_CHECKSUM        0x905B
+#define MMAP_QL_CHECKSUM        0x9BBA
 
 enum MMAP_QL_LISTS {
     MMAP_QL_FQL0_P3 = 0,        /*!< fql0.p3 */

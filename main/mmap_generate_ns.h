@@ -14,7 +14,7 @@
 #include "esp_mmap_assets.h"
 
 #define MMAP_NS_FILES           57
-#define MMAP_NS_CHECKSUM        0x0717
+#define MMAP_NS_CHECKSUM        0x214D
 
 enum MMAP_NS_LISTS {
     MMAP_NS_FNS0_P3 = 0,        /*!< fns0.p3 */

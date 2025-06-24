@@ -14,7 +14,7 @@
 #include "esp_mmap_assets.h"
 
 #define MMAP_XQ_FILES           60
-#define MMAP_XQ_CHECKSUM        0x7C76
+#define MMAP_XQ_CHECKSUM        0x4FB0
 
 enum MMAP_XQ_LISTS {
     MMAP_XQ_FXQ0_P3 = 0,        /*!< fxq0.p3 */

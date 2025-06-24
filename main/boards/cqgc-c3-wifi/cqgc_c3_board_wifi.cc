@@ -37,6 +37,7 @@ private:
         power_save_timer_->WakeUp();
 #if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
         if (!manager_->isOnlineScene()) {
+            continue_playing_ = true;
             manager_->playNextSound();
         }
 #endif
@@ -100,7 +101,6 @@ private:
     {
         boot_button_.OnClick([this]() {
             if (continue_playing_ == false) {
-                continue_playing_ = true;
                 handleNextButtonClick();
             } else {
                 continue_playing_ = false;
@@ -132,7 +132,6 @@ private:
 
         next_button_.OnClick([this]() {
           if (continue_playing_ == false) {
-            continue_playing_ = true;
             handleNextButtonClick();
           } else {
             continue_playing_ = false;
@@ -158,7 +157,6 @@ private:
 
         prev_button_.OnClick([this]() {
             if (continue_playing_ == false) {
-                continue_playing_ = true;
                 handleNextButtonClick();
             } else {
                 continue_playing_ = false;
