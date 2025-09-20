@@ -142,3 +142,8 @@
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=78/xiaozhi-esp32&type=Date" />
  </picture>
 </a>
+
+## 生成p3
+```sh
+./scripts/p3_tools/batch_convert_cli.py audio_to_p3 renamed_mp3_shell renamed_mp3_shell_p3
+```

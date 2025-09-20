@@ -31,6 +31,7 @@ private:
     PowerSaveTimer *power_save_timer_;
     OfflineSceneManager *manager_ = nullptr;
     bool continue_playing_ = 0;
+    bool is_prev_button_pressed_ = false;
 
     void handleNextButtonClick() {
         ToggleChatState();
@@ -39,6 +40,18 @@ private:
         if (!manager_->isOnlineScene()) {
             continue_playing_ = true;
             manager_->playNextSound();
+        }
+#endif
+    }
+
+    void handlePrevButtonClick() {
+        is_prev_button_pressed_ = true;
+        ToggleChatState();
+        power_save_timer_->WakeUp();
+#if CONFIG_LAN_XIAOHONGMEI || CONFIG_LAN_XIAOHUOGUO
+        if (!manager_->isOnlineScene()) {
+            continue_playing_ = true;
+            manager_->playPrevSound();
         }
 #endif
     }
@@ -100,13 +113,13 @@ private:
     void InitializeButtons()
     {
         boot_button_.OnClick([this]() {
-            if (continue_playing_ == false) {
-                handleNextButtonClick();
-            } else {
-                continue_playing_ = false;
+            // if (continue_playing_ == false) {
+                // handleNextButtonClick();
+            // } else {
+            //     continue_playing_ = false;
                 auto &app = Application::GetInstance();
                 app.StopPlaybackAndReset();
-            }
+            // }
         });
         boot_button_.OnLongPress([this]() { 
             if (continue_playing_ == true) {
@@ -131,13 +144,13 @@ private:
         });
 
         next_button_.OnClick([this]() {
-          if (continue_playing_ == false) {
+        //   if (continue_playing_ == false) {
             handleNextButtonClick();
-          } else {
-            continue_playing_ = false;
-            auto &app = Application::GetInstance();
-            app.StopPlaybackAndReset();
-          }
+        //   } else {
+        //     continue_playing_ = false;
+        //     auto &app = Application::GetInstance();
+        //     app.StopPlaybackAndReset();
+        //   }
         });
         next_button_.OnLongPress([this]() {
             auto codec = GetAudioCodec();
@@ -156,13 +169,14 @@ private:
         });
 
         prev_button_.OnClick([this]() {
-            if (continue_playing_ == false) {
-                handleNextButtonClick();
-            } else {
-                continue_playing_ = false;
-                auto &app = Application::GetInstance();
-                app.StopPlaybackAndReset();
-            }
+            // if (continue_playing_ == false) {
+                // handleNextButtonClick();
+            handlePrevButtonClick();
+            // } else {
+            //     continue_playing_ = false;
+            //     auto &app = Application::GetInstance();
+            //     app.StopPlaybackAndReset();
+            // }
         });
         prev_button_.OnLongPress([this]() {
             auto codec = GetAudioCodec();
@@ -205,6 +219,10 @@ public:
         auto &app = Application::GetInstance();
         app.SetPlaybackFinishedCallback([this]() {
             ESP_LOGI(TAG, "==Playback finished, calling callback");
+            // if (is_prev_button_pressed_) {
+            //     is_prev_button_pressed_ = false;
+            //     return;
+            // }
             if (continue_playing_) {
               handleNextButtonClick();
             }

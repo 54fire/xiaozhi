@@ -13,9 +13,8 @@
 #elif CONFIG_LAN_XIAOHUOGUO
 #include "mmap_generate_xiaohuoguo.h"
 #endif
-#include "mmap_generate_xq.h"
-#include "mmap_generate_ns.h"
-#include "mmap_generate_ql.h"
+
+#include "mmap_generate_ai.h"
 
 class OfflineSceneManager
 {
@@ -25,14 +24,12 @@ private:
     
     OfflineBase* current_player_;
     std::map<std::string, std::unique_ptr<OfflineBase>> registered_scenes_;
-    std::vector<std::string> scene_names_ = {"fxq", "fns", "fql", "online"};
-    size_t current_scene_index_ = 3;
+    std::vector<std::string> scene_names_ = {"online", "ai"};
+    size_t current_scene_index_ = 0;
 
     // 为每个场景添加独立的资源句柄
-    mmap_assets_handle_t asset_fxq_audio;
-    mmap_assets_handle_t asset_fns_audio;
-    mmap_assets_handle_t asset_fql_audio;
     mmap_assets_handle_t asset_online_audio;
+    mmap_assets_handle_t asset_ai_audio;
 
     // 当前活跃的资源句柄
     mmap_assets_handle_t* current_asset_handle_;
@@ -69,6 +66,8 @@ public:
     int getNextSound();
     // 播放下一个音频资源
     void playNextSound();
+    // 获取上一个音频资源
+    int getPrevSound();
     // 播放上一个音频资源
     void playPrevSound();
 

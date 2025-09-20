@@ -8,7 +8,7 @@
 
 class OfflineBase {
 protected:
-    size_t current_index_ = 0;
+    int16_t current_index_ = 0;
 
     // 子类必须实现此函数来提供自己的音频资源
     virtual const std::vector<int>& getSounds() const = 0;

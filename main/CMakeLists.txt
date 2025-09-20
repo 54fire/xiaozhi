@@ -191,6 +191,7 @@ if(CONFIG_LAN_XIAOHONGMEI OR CONFIG_LAN_XIAOHUOGUO)
     endif()
     list(APPEND SOURCES 
     "offline/offline_base.cc"
+    "offline/ai_offline.cc"
     "offline/fns_offline.cc"
     "offline/fql_offline.cc"
     "offline/fxq_offline.cc"
@@ -230,22 +231,8 @@ idf_component_register(SRCS ${SOURCES}
 if(CONFIG_LAN_XIAOHONGMEI OR CONFIG_LAN_XIAOHUOGUO)
 # 为不同场景创建独立的分区
 spiffs_create_partition_assets(
-    fxq_audio
-    "./assets/offline_audio/${LANG_DIR}/xq"
-    FLASH_IN_PROJECT
-    MMAP_FILE_SUPPORT_FORMAT ".p3"
-)
-
-spiffs_create_partition_assets(
-    fns_audio
-    "./assets/offline_audio/${LANG_DIR}/ns"
-    FLASH_IN_PROJECT
-    MMAP_FILE_SUPPORT_FORMAT ".p3"
-)
-
-spiffs_create_partition_assets(
-    fql_audio
-    "./assets/offline_audio/${LANG_DIR}/ql"
+    ai_audio
+    "./assets/offline_audio/${LANG_DIR}/ai"
     FLASH_IN_PROJECT
     MMAP_FILE_SUPPORT_FORMAT ".p3"
 )
